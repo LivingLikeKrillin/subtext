@@ -1,0 +1,46 @@
+import { useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import type { ServerStatus } from "../types";
+import { getServerStatus, startServer, stopServer } from "../lib/tauriApi";
+
+export function useServerStatus() {
+  const [status, setStatus] = useState<ServerStatus>("STOPPED");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get initial status
+    getServerStatus().then(setStatus).catch(console.error);
+
+    // Listen for status changes
+    const unlisten = listen<ServerStatus>("server-status", (event) => {
+      setStatus(event.payload);
+      if (event.payload !== "ERROR") {
+        setError(null);
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  const start = async () => {
+    setError(null);
+    try {
+      await startServer();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const stop = async () => {
+    setError(null);
+    try {
+      await stopServer();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  return { status, error, start, stop };
+}

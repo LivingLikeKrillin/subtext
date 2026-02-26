@@ -1,0 +1,30 @@
+# Node
+node_modules/
+dist/
+
+# Rust
+src-tauri/target/
+
+# Python
+__pycache__/
+*.pyc
+python-server/venv/
+*.egg-info/
+
+# Bundled Python resources
+src-tauri/resources/python-embed/
+src-tauri/resources/get-pip.py
+src-tauri/resources/python-server/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.log
