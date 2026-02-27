@@ -3,6 +3,11 @@
     "title": "SubText",
     "loading": "로딩 중..."
   },
+  "nav": {
+    "workspace": "작업 공간",
+    "models": "모델",
+    "settings": "설정"
+  },
   "server": {
     "title": "Python 서버",
     "status": {

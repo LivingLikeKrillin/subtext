@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Play, Square, Loader } from "lucide-react";
 import type { ServerStatus } from "../types";
 
 interface Props {
@@ -26,7 +27,7 @@ export function ServerControl({ status, error, onStart, onStop }: Props) {
   };
 
   return (
-    <div className="mb-5 rounded-[10px] bg-surface p-4">
+    <div className="mb-5 rounded-xl border border-border bg-surface p-4">
       <div className="flex items-center gap-3">
         <span className="text-[0.95rem] font-semibold">{t("server.title")}</span>
         <span
@@ -36,23 +37,26 @@ export function ServerControl({ status, error, onStart, onStop }: Props) {
         </span>
         {status === "STOPPED" || status === "ERROR" ? (
           <button
-            className="cursor-pointer rounded-md bg-success px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-85"
+            className="flex cursor-pointer items-center gap-1.5 rounded-md bg-success px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-85"
             onClick={onStart}
           >
+            <Play size={14} />
             {t("server.startButton")}
           </button>
         ) : status === "RUNNING" ? (
           <button
-            className="cursor-pointer rounded-md bg-danger px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-85"
+            className="flex cursor-pointer items-center gap-1.5 rounded-md bg-danger px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-85"
             onClick={onStop}
           >
+            <Square size={14} />
             {t("server.stopButton")}
           </button>
         ) : (
           <button
-            className="cursor-not-allowed rounded-md bg-surface-inset px-4 py-2 text-sm font-medium text-slate-400 opacity-50"
+            className="flex cursor-not-allowed items-center gap-1.5 rounded-md bg-surface-inset px-4 py-2 text-sm font-medium text-slate-400 opacity-50"
             disabled
           >
+            <Loader size={14} className="animate-spin" />
             {t("server.status.starting")}
           </button>
         )}

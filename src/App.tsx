@@ -10,9 +10,10 @@ import { SetupScreen } from "./components/SetupScreen";
 import { WizardScreen } from "./components/wizard/WizardScreen";
 import { AppShell } from "./components/layout/AppShell";
 import { WorkspaceScreen } from "./components/workspace/WorkspaceScreen";
-import { SettingsOverlay } from "./components/settings/SettingsOverlay";
+import { SettingsPage } from "./components/settings/SettingsPage";
+import { ModelsPage } from "./components/models/ModelsPage";
 import { saveGlossary } from "./lib/tauriApi";
-import type { AppScreen, GlossaryEntry } from "./types";
+import type { AppScreen, MainPage, GlossaryEntry } from "./types";
 
 function determineScreen(
   configLoading: boolean,
@@ -34,7 +35,7 @@ function App() {
   const runtime = useRuntime();
   const models = useModels();
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activePage, setActivePage] = useState<MainPage>("workspace");
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([]);
 
   const screen = determineScreen(configLoading, config, setupStatus);
@@ -88,13 +89,14 @@ function App() {
     );
   }
 
-  // ── MAIN: Workspace + Settings overlay ──
+  // ── MAIN: Sidebar + page content ──
   return (
-    <>
-      <AppShell
-        runtime={runtime.status}
-        onOpenSettings={() => setSettingsOpen(true)}
-      >
+    <AppShell
+      activePage={activePage}
+      runtime={runtime.status}
+      onNavigate={setActivePage}
+    >
+      {activePage === "workspace" && (
         <WorkspaceScreen
           serverStatus={serverStatus}
           serverError={serverError}
@@ -102,21 +104,28 @@ function App() {
           onStopServer={stopServer}
           resources={runtime.resources}
         />
-      </AppShell>
+      )}
 
-      {settingsOpen && config && (
-        <SettingsOverlay
+      {activePage === "models" && (
+        <ModelsPage
+          manifest={models.manifest}
+          onDelete={models.deleteModel}
+          onDownload={models.startDownload}
+        />
+      )}
+
+      {activePage === "settings" && config && (
+        <SettingsPage
           config={config}
           manifest={models.manifest}
           glossaryEntries={glossaryEntries}
           onUpdateConfig={(patch) => updateConfig(patch)}
           onSaveGlossary={handleSaveGlossary}
-          onDeleteModel={() => {/* Sprint 2 */}}
-          onDownloadModel={() => {/* Sprint 2 */}}
-          onClose={() => setSettingsOpen(false)}
+          onDeleteModel={models.deleteModel}
+          onDownloadModel={models.startDownload}
         />
       )}
-    </>
+    </AppShell>
   );
 }
 

@@ -3,6 +3,11 @@
     "title": "SubText",
     "loading": "Loading..."
   },
+  "nav": {
+    "workspace": "Workspace",
+    "models": "Models",
+    "settings": "Settings"
+  },
   "server": {
     "title": "Python Server",
     "status": {

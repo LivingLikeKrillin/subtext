@@ -1,10 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-surface: #1e293b;
-  --color-surface-inset: #0f172a;
-  --color-border: #334155;
-  --color-primary: #3b82f6;
+  --color-surface: #1a1a2e;
+  --color-surface-inset: #101020;
+  --color-surface-hover: #232340;
+  --color-border: #2a2a45;
+  --color-border-subtle: #1f1f38;
+  --color-primary: #7c5cfc;
+  --color-primary-hover: #6b4ce0;
   --color-success: #22c55e;
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
@@ -28,23 +31,4 @@ body {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* Settings overlay slide-in */
-.settings-enter {
-  animation: slide-in 0.25s ease-out forwards;
-}
-
-.settings-exit {
-  animation: slide-out 0.2s ease-in forwards;
-}
-
-@keyframes slide-in {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
-}
-
-@keyframes slide-out {
-  from { transform: translateX(0); }
-  to   { transform: translateX(100%); }
 }

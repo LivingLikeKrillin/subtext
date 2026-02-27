@@ -28,13 +28,13 @@ export function ConfirmDialog({
   const confirmBg = variant === "danger" ? "bg-danger" : "bg-primary";
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
-      <div className="w-full max-w-[400px] rounded-xl bg-surface p-6">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="w-full max-w-[400px] rounded-xl border border-border bg-surface p-6 shadow-2xl">
         <h3 className="mb-2 text-lg font-semibold text-slate-50">{title}</h3>
         <p className="mb-6 text-sm text-slate-400">{message}</p>
         <div className="flex justify-end gap-3">
           <button
-            className="cursor-pointer rounded-md px-4 py-2 text-sm text-slate-400 transition-colors hover:text-slate-200"
+            className="cursor-pointer rounded-md px-4 py-2 text-sm text-slate-400 transition-colors hover:bg-surface-hover hover:text-slate-200"
             onClick={onCancel}
           >
             {cancelLabel ?? t("shared.cancel")}

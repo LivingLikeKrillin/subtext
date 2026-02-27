@@ -7,6 +7,13 @@ const statusColor: Record<RuntimeModelStatus, string> = {
   ERROR: "bg-danger",
 };
 
+const statusLabel: Record<RuntimeModelStatus, string> = {
+  UNLOADED: "Unloaded",
+  LOADING: "Loading",
+  READY: "Ready",
+  ERROR: "Error",
+};
+
 interface StatusBadgeProps {
   label: string;
   status: RuntimeModelStatus;
@@ -14,9 +21,10 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ label, status }: StatusBadgeProps) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-xs text-slate-300">
-      <span className={`inline-block h-2 w-2 rounded-full ${statusColor[status]}`} />
-      {label}
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-surface-inset px-2.5 py-1 text-xs text-slate-400">
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${statusColor[status]}`} />
+      <span className="text-slate-300">{label}</span>
+      <span>{statusLabel[status]}</span>
     </span>
   );
 }

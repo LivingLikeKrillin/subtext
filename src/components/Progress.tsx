@@ -16,7 +16,7 @@ export function Progress({ value, max = 100 }: Props) {
         className="relative flex-1 h-2 overflow-hidden rounded bg-border"
       >
         <ProgressPrimitive.Indicator
-          className="h-full rounded bg-linear-to-r from-primary to-violet-500 transition-[width] duration-300 ease-out"
+          className="h-full rounded bg-linear-to-r from-primary to-purple-400 transition-[width] duration-300 ease-out"
           style={{ width: `${pct}%` }}
         />
       </ProgressPrimitive.Root>

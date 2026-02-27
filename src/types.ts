@@ -139,6 +139,7 @@ export interface ModelCatalog {
 // ── Screen navigation ──
 
 export type AppScreen = "BOOT" | "WIZARD" | "SETUP" | "MAIN";
+export type MainPage = "workspace" | "models" | "settings";
 export type WizardStep = 1 | 2 | 3 | 4 | 5;
 export type SettingsTab =
   | "profile"
