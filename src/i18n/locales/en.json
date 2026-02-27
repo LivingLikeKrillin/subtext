@@ -137,6 +137,14 @@
       "translated": "Translated",
       "noSegments": "No subtitles yet. Select a file to begin."
     },
+    "export": {
+      "button": "Export Subtitles",
+      "format": "Format",
+      "saved": "Saved",
+      "openFolder": "Open Folder",
+      "error": "Export failed",
+      "exporting": "Exporting..."
+    },
     "resource": {
       "ram": "RAM",
       "vram": "VRAM",

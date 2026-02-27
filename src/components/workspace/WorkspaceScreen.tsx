@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
-import type { ServerStatus, ResourceUsage, RuntimeStatus, PipelinePhase } from "../../types";
+import { useEffect, useRef, useState } from "react";
+import type { ServerStatus, ResourceUsage, RuntimeStatus, PipelinePhase, AppConfig } from "../../types";
 import { getConfig } from "../../lib/tauriApi";
 import { ServerControl } from "../ServerControl";
 import { FileInput } from "./FileInput";
 import { PipelineProgress } from "./PipelineProgress";
 import { SubtitlePreview } from "./SubtitlePreview";
+import { ExportBar } from "./ExportBar";
 import { ResourceMonitor } from "./ResourceMonitor";
 import { useStt } from "../../hooks/useStt";
 import { useTranslate } from "../../hooks/useTranslate";
@@ -30,6 +31,13 @@ export function WorkspaceScreen({
 }: WorkspaceScreenProps) {
   const stt = useStt();
   const translate = useTranslate();
+  const [sourceFileName, setSourceFileName] = useState<string>("");
+  const [config, setConfig] = useState<AppConfig | null>(null);
+
+  // Load config on mount (for ExportBar defaults)
+  useEffect(() => {
+    getConfig().then(setConfig).catch(() => {});
+  }, []);
 
   // Track whether we've already triggered translation for this STT run
   const translationTriggeredRef = useRef(false);
@@ -110,6 +118,10 @@ export function WorkspaceScreen({
         : null;
 
   const handleFileSelected = (path: string) => {
+    // Extract file name without extension for export default
+    const baseName = path.split(/[/\\]/).pop() ?? "output";
+    const dotIdx = baseName.lastIndexOf(".");
+    setSourceFileName(dotIdx > 0 ? baseName.substring(0, dotIdx) : baseName);
     stt.startTranscription(path);
   };
 
@@ -156,6 +168,16 @@ export function WorkspaceScreen({
             : stt.activeIndex
         }
       />
+
+      {compositePhase === "done" && config && (
+        <ExportBar
+          sttSegments={stt.segments}
+          translateSegments={translate.segments}
+          defaultFormat={config.subtitle_format}
+          defaultOutputDir={config.output_dir}
+          sourceFileName={sourceFileName}
+        />
+      )}
 
       <ResourceMonitor resources={resources} runtimeStatus={runtimeStatus} onUnloadModel={onUnloadModel} />
     </div>

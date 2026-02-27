@@ -137,6 +137,34 @@ export async function cancelTranslate(jobId: string): Promise<void> {
   await invoke("cancel_translate", { jobId });
 }
 
+// ── Export commands ──
+
+export interface ExportSegmentInput {
+  index: number;
+  start: number;
+  end: number;
+  text: string;
+  translated?: string;
+}
+
+export async function exportSubtitles(
+  segments: ExportSegmentInput[],
+  format: string,
+  outputDir: string,
+  fileName: string,
+): Promise<string> {
+  return invoke<string>("export_subtitles", {
+    segments,
+    format,
+    outputDir,
+    fileName,
+  });
+}
+
+export async function openFolder(path: string): Promise<void> {
+  await invoke("open_folder", { path });
+}
+
 // ── Runtime commands ──
 
 export async function getRuntimeStatus(): Promise<RuntimeStatus> {

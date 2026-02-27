@@ -50,7 +50,12 @@ pub async fn start_stt(
     let mut body = serde_json::json!({
         "file_path": file_path,
     });
-    if let Some(ref lang) = language {
+    // Use explicit language param, or fall back to config.source_language
+    let effective_lang = language.or_else(|| {
+        let lang = config.source_language.clone();
+        if lang == "auto" { None } else { Some(lang) }
+    });
+    if let Some(ref lang) = effective_lang {
         body["language"] = serde_json::Value::String(lang.clone());
     }
     if let Some(ref model_id) = whisper_model_id {

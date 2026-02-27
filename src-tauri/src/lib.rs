@@ -1,5 +1,6 @@
 mod commands;
 mod commands_config;
+mod commands_export;
 mod commands_model;
 mod commands_runtime;
 mod commands_stt;
@@ -15,6 +16,7 @@ mod python_manager;
 mod setup_manager;
 mod sse_client;
 mod state;
+mod subtitle_writer;
 
 use tauri::Manager;
 
@@ -62,6 +64,9 @@ pub fn run() {
             commands_runtime::get_runtime_status,
             commands_runtime::load_runtime_model,
             commands_runtime::unload_runtime_model,
+            // Export commands
+            commands_export::export_subtitles,
+            commands_export::open_folder,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -137,6 +137,14 @@
       "translated": "번역",
       "noSegments": "아직 자막이 없습니다. 파일을 선택하여 시작하세요."
     },
+    "export": {
+      "button": "자막 내보내기",
+      "format": "형식",
+      "saved": "저장됨",
+      "openFolder": "폴더 열기",
+      "error": "내보내기 실패",
+      "exporting": "내보내기 중..."
+    },
     "resource": {
       "ram": "RAM",
       "vram": "VRAM",
