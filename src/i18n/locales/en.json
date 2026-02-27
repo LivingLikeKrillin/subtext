@@ -42,5 +42,180 @@
     "startingFallback": "Starting setup...",
     "unknownError": "An unknown error occurred",
     "retryButton": "Retry Setup"
+  },
+  "shared": {
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "wizard": {
+    "stepLabels": {
+      "1": "Welcome",
+      "2": "Environment",
+      "3": "Output Settings",
+      "4": "Model Selection",
+      "5": "Installation"
+    },
+    "back": "Back",
+    "next": "Next",
+    "welcome": {
+      "title": "Welcome to SubText",
+      "description": "SubText transcribes and translates audio/video subtitles using local AI models. Let's set up your environment in a few quick steps.",
+      "getStarted": "Get Started",
+      "skip": "Skip setup wizard"
+    },
+    "environment": {
+      "title": "Your Environment",
+      "detecting": "Detecting hardware...",
+      "cpuCard": "CPU",
+      "ramCard": "RAM",
+      "gpuCard": "GPU",
+      "diskCard": "Instruction Set",
+      "noGpu": "No GPU detected",
+      "instructionSet": "CPU instruction support",
+      "profileTitle": "Recommended Profile",
+      "recommended": "Recommended",
+      "profile": {
+        "lite": "Lite",
+        "balanced": "Balanced",
+        "power": "Power"
+      },
+      "profileDesc": {
+        "lite": "CPU only. Smallest models, lowest resource usage.",
+        "balanced": "GPU accelerated. Good quality with moderate resources.",
+        "power": "Full GPU. Largest models, best quality."
+      }
+    },
+    "output": {
+      "title": "Output Settings",
+      "folderLabel": "Output Folder",
+      "browse": "Browse",
+      "formatLabel": "Subtitle Format",
+      "sourceLanguage": "Source Language",
+      "targetLanguage": "Target Language"
+    },
+    "models": {
+      "title": "Model Selection",
+      "whisperTitle": "Speech Recognition (Whisper)",
+      "llmTitle": "Translation (LLM)",
+      "skipLlm": "Skip translation (STT only)",
+      "totalSize": "Total download size",
+      "diskWarning": "Not enough disk space"
+    },
+    "install": {
+      "title": "Installing",
+      "downloading": "Downloading models...",
+      "installing": "Installing dependencies...",
+      "verifying": "Verifying files...",
+      "complete": "Setup Complete!",
+      "startUsing": "Start Using SubText",
+      "error": "Installation Failed",
+      "retry": "Retry"
+    }
+  },
+  "workspace": {
+    "fileInput": {
+      "dropzone": "Drop an audio or video file here, or click to browse",
+      "browse": "Browse Files",
+      "selectedFile": "Selected"
+    },
+    "pipeline": {
+      "transcribing": "Transcribing...",
+      "translating": "Translating...",
+      "done": "Complete",
+      "cancelled": "Cancelled",
+      "elapsed": "Elapsed:",
+      "eta": "ETA:"
+    },
+    "preview": {
+      "timestamp": "Time",
+      "original": "Original",
+      "translated": "Translated",
+      "noSegments": "No subtitles yet. Select a file to begin."
+    },
+    "resource": {
+      "ram": "RAM",
+      "vram": "VRAM",
+      "warning": "High resource usage"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "close": "Close",
+    "tabs": {
+      "profile": "Profile",
+      "output": "Output",
+      "translation": "Translation",
+      "models": "Models",
+      "glossary": "Glossary",
+      "api": "External API",
+      "language": "Language"
+    },
+    "profile": {
+      "title": "Performance Profile",
+      "description": "Choose a profile that matches your hardware capabilities.",
+      "lite": "Lite",
+      "liteDesc": "CPU only. Smallest models, lowest resource usage.",
+      "balanced": "Balanced",
+      "balancedDesc": "GPU accelerated. Good quality with moderate resources.",
+      "power": "Power",
+      "powerDesc": "Full GPU. Largest models, best quality."
+    },
+    "output": {
+      "title": "Output Settings"
+    },
+    "translation": {
+      "title": "Translation",
+      "mode": "Translation Mode",
+      "modeOff": "Off",
+      "modeLocal": "Local",
+      "modeExternal": "External",
+      "contextWindow": "Context Window (segments)",
+      "stylePreset": "Style Preset",
+      "style": {
+        "literal": "Literal",
+        "natural": "Natural",
+        "casual": "Casual",
+        "formal": "Formal"
+      }
+    },
+    "models": {
+      "title": "Installed Models",
+      "empty": "No models installed.",
+      "delete": "Delete",
+      "confirmDelete": "Delete Model",
+      "confirmDeleteMsg": "Are you sure you want to delete this model? You can re-download it later.",
+      "download": "Download",
+      "size": "Size",
+      "status": {
+        "downloading": "Downloading",
+        "verifying": "Verifying",
+        "ready": "Ready",
+        "missing": "Missing",
+        "corrupt": "Corrupt"
+      }
+    },
+    "glossary": {
+      "title": "Glossary",
+      "addPair": "Add Pair",
+      "source": "Source term",
+      "target": "Translation",
+      "delete": "Delete",
+      "save": "Save",
+      "empty": "No glossary entries. Add pairs to customize translation."
+    },
+    "api": {
+      "title": "External API",
+      "provider": "Provider",
+      "apiKey": "API Key",
+      "model": "Model",
+      "testConnection": "Test Connection",
+      "success": "Connection successful",
+      "failed": "Connection failed"
+    },
+    "language": {
+      "title": "UI Language",
+      "en": "English",
+      "ko": "Korean"
+    }
   }
 }

@@ -29,3 +29,22 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Settings overlay slide-in */
+.settings-enter {
+  animation: slide-in 0.25s ease-out forwards;
+}
+
+.settings-exit {
+  animation: slide-out 0.2s ease-in forwards;
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slide-out {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}

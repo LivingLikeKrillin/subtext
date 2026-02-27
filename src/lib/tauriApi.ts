@@ -86,3 +86,23 @@ export async function saveGlossary(
 ): Promise<void> {
   await invoke("save_glossary", { name, entries });
 }
+
+// ── Dialog helpers (until @tauri-apps/plugin-dialog is installed) ──
+
+export async function pickDirectory(): Promise<string | null> {
+  try {
+    return await invoke<string | null>("pick_directory");
+  } catch {
+    return null;
+  }
+}
+
+export async function pickFile(
+  filters: { name: string; extensions: string[] }[],
+): Promise<string | null> {
+  try {
+    return await invoke<string | null>("pick_file", { filters });
+  } catch {
+    return null;
+  }
+}

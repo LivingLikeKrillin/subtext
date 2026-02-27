@@ -42,5 +42,180 @@
     "startingFallback": "설정 시작 중...",
     "unknownError": "알 수 없는 오류가 발생했습니다",
     "retryButton": "설정 재시도"
+  },
+  "shared": {
+    "confirm": "확인",
+    "cancel": "취소"
+  },
+  "wizard": {
+    "stepLabels": {
+      "1": "환영",
+      "2": "환경 확인",
+      "3": "출력 설정",
+      "4": "모델 선택",
+      "5": "설치"
+    },
+    "back": "이전",
+    "next": "다음",
+    "welcome": {
+      "title": "SubText에 오신 것을 환영합니다",
+      "description": "SubText는 로컬 AI 모델을 사용하여 오디오/비디오 자막을 생성하고 번역합니다. 몇 가지 간단한 단계로 환경을 설정해 보겠습니다.",
+      "getStarted": "시작하기",
+      "skip": "설정 마법사 건너뛰기"
+    },
+    "environment": {
+      "title": "환경 확인",
+      "detecting": "하드웨어 감지 중...",
+      "cpuCard": "CPU",
+      "ramCard": "RAM",
+      "gpuCard": "GPU",
+      "diskCard": "명령어 세트",
+      "noGpu": "GPU 미감지",
+      "instructionSet": "CPU 명령어 지원",
+      "profileTitle": "추천 프로필",
+      "recommended": "추천",
+      "profile": {
+        "lite": "Lite",
+        "balanced": "Balanced",
+        "power": "Power"
+      },
+      "profileDesc": {
+        "lite": "CPU 전용. 가장 작은 모델, 최소 리소스 사용.",
+        "balanced": "GPU 가속. 적절한 리소스로 좋은 품질.",
+        "power": "전체 GPU. 가장 큰 모델, 최고 품질."
+      }
+    },
+    "output": {
+      "title": "출력 설정",
+      "folderLabel": "출력 폴더",
+      "browse": "찾아보기",
+      "formatLabel": "자막 형식",
+      "sourceLanguage": "원본 언어",
+      "targetLanguage": "번역 언어"
+    },
+    "models": {
+      "title": "모델 선택",
+      "whisperTitle": "음성 인식 (Whisper)",
+      "llmTitle": "번역 (LLM)",
+      "skipLlm": "번역 건너뛰기 (STT만 사용)",
+      "totalSize": "총 다운로드 크기",
+      "diskWarning": "디스크 공간이 부족합니다"
+    },
+    "install": {
+      "title": "설치 중",
+      "downloading": "모델 다운로드 중...",
+      "installing": "의존성 설치 중...",
+      "verifying": "파일 검증 중...",
+      "complete": "설정 완료!",
+      "startUsing": "SubText 시작하기",
+      "error": "설치 실패",
+      "retry": "재시도"
+    }
+  },
+  "workspace": {
+    "fileInput": {
+      "dropzone": "오디오 또는 비디오 파일을 여기에 드롭하거나 클릭하여 찾아보기",
+      "browse": "파일 찾아보기",
+      "selectedFile": "선택됨"
+    },
+    "pipeline": {
+      "transcribing": "음성 인식 중...",
+      "translating": "번역 중...",
+      "done": "완료",
+      "cancelled": "취소됨",
+      "elapsed": "경과 시간:",
+      "eta": "예상 시간:"
+    },
+    "preview": {
+      "timestamp": "시간",
+      "original": "원본",
+      "translated": "번역",
+      "noSegments": "아직 자막이 없습니다. 파일을 선택하여 시작하세요."
+    },
+    "resource": {
+      "ram": "RAM",
+      "vram": "VRAM",
+      "warning": "리소스 사용량이 높습니다"
+    }
+  },
+  "settings": {
+    "title": "설정",
+    "close": "닫기",
+    "tabs": {
+      "profile": "프로필",
+      "output": "출력",
+      "translation": "번역",
+      "models": "모델",
+      "glossary": "용어집",
+      "api": "외부 API",
+      "language": "언어"
+    },
+    "profile": {
+      "title": "성능 프로필",
+      "description": "하드웨어 성능에 맞는 프로필을 선택하세요.",
+      "lite": "Lite",
+      "liteDesc": "CPU 전용. 가장 작은 모델, 최소 리소스 사용.",
+      "balanced": "Balanced",
+      "balancedDesc": "GPU 가속. 적절한 리소스로 좋은 품질.",
+      "power": "Power",
+      "powerDesc": "전체 GPU. 가장 큰 모델, 최고 품질."
+    },
+    "output": {
+      "title": "출력 설정"
+    },
+    "translation": {
+      "title": "번역",
+      "mode": "번역 모드",
+      "modeOff": "끄기",
+      "modeLocal": "로컬",
+      "modeExternal": "외부",
+      "contextWindow": "컨텍스트 윈도우 (세그먼트)",
+      "stylePreset": "스타일 프리셋",
+      "style": {
+        "literal": "직역",
+        "natural": "자연스러운",
+        "casual": "구어체",
+        "formal": "격식체"
+      }
+    },
+    "models": {
+      "title": "설치된 모델",
+      "empty": "설치된 모델이 없습니다.",
+      "delete": "삭제",
+      "confirmDelete": "모델 삭제",
+      "confirmDeleteMsg": "이 모델을 삭제하시겠습니까? 나중에 다시 다운로드할 수 있습니다.",
+      "download": "다운로드",
+      "size": "크기",
+      "status": {
+        "downloading": "다운로드 중",
+        "verifying": "검증 중",
+        "ready": "준비됨",
+        "missing": "없음",
+        "corrupt": "손상됨"
+      }
+    },
+    "glossary": {
+      "title": "용어집",
+      "addPair": "쌍 추가",
+      "source": "원어",
+      "target": "번역어",
+      "delete": "삭제",
+      "save": "저장",
+      "empty": "용어집 항목이 없습니다. 번역을 맞춤 설정하려면 쌍을 추가하세요."
+    },
+    "api": {
+      "title": "외부 API",
+      "provider": "제공자",
+      "apiKey": "API 키",
+      "model": "모델",
+      "testConnection": "연결 테스트",
+      "success": "연결 성공",
+      "failed": "연결 실패"
+    },
+    "language": {
+      "title": "UI 언어",
+      "en": "English",
+      "ko": "한국어"
+    }
   }
 }

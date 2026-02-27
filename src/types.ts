@@ -135,3 +135,78 @@ export interface ModelCatalog {
   whisper_models: WhisperModelEntry[];
   llm_models: LlmModelEntry[];
 }
+
+// ── Screen navigation ──
+
+export type AppScreen = "BOOT" | "WIZARD" | "SETUP" | "MAIN";
+export type WizardStep = 1 | 2 | 3 | 4 | 5;
+export type SettingsTab =
+  | "profile"
+  | "output"
+  | "translation"
+  | "models"
+  | "glossary"
+  | "api"
+  | "language";
+
+// ── Download tracking ──
+
+export interface DownloadProgress {
+  model_id: string;
+  downloaded: number;
+  total: number;
+  speed_bps: number;
+  eta_secs: number;
+}
+
+// ── Model manifest ──
+
+export interface ModelManifestEntry {
+  id: string;
+  type: "whisper" | "llm";
+  name: string;
+  path: string;
+  size_bytes: number;
+  sha256: string;
+  status: "downloading" | "verifying" | "ready" | "missing" | "corrupt";
+  installed_at: string;
+}
+
+// ── Runtime ──
+
+export type RuntimeModelStatus = "UNLOADED" | "LOADING" | "READY" | "ERROR";
+
+export interface RuntimeStatus {
+  whisper: RuntimeModelStatus;
+  llm: RuntimeModelStatus;
+}
+
+export interface ResourceUsage {
+  ram_used_mb: number;
+  ram_total_mb: number;
+  vram_used_mb: number | null;
+  vram_total_mb: number | null;
+}
+
+// ── Pipeline ──
+
+export type PipelinePhase =
+  | "idle"
+  | "stt"
+  | "translating"
+  | "done"
+  | "error"
+  | "cancelled";
+
+export interface SttSegment {
+  index: number;
+  start: number;
+  end: number;
+  text: string;
+}
+
+export interface TranslateSegment {
+  index: number;
+  original: string;
+  translated: string;
+}
