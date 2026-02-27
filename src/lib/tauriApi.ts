@@ -110,6 +110,19 @@ export async function verifyModel(modelId: string): Promise<string> {
   return invoke<string>("verify_model", { modelId });
 }
 
+// ── STT commands ──
+
+export async function startStt(
+  filePath: string,
+  language?: string,
+): Promise<Job> {
+  return invoke<Job>("start_stt", { filePath, language });
+}
+
+export async function cancelStt(jobId: string): Promise<void> {
+  await invoke("cancel_stt", { jobId });
+}
+
 // ── Dialog helpers (until @tauri-apps/plugin-dialog is installed) ──
 
 export async function pickDirectory(): Promise<string | null> {

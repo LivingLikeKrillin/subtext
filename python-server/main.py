@@ -7,8 +7,10 @@ from sse_starlette.sse import EventSourceResponse
 
 from models import InferenceRequest, InferenceResponse
 from inference import create_job, cancel_job, get_job, run_inference
+from stt_router import router as stt_router
 
 app = FastAPI(title="AI Inference Server")
+app.include_router(stt_router)
 
 
 @app.get("/health")

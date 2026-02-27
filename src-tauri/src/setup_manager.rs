@@ -58,10 +58,20 @@ fn get_marker_path() -> PathBuf {
         .join("setup-complete.marker")
 }
 
+/// Returns the default models directory (%APPDATA%/com.subtext.app/models/).
+fn get_models_dir() -> PathBuf {
+    let app_data = std::env::var("APPDATA").unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(app_data)
+        .join("com.subtext.app")
+        .join("models")
+}
+
 /// Builds environment variables for running Python with bundled packages.
 pub fn build_python_env(app: &AppHandle) -> Vec<(String, String)> {
+    let models_dir = get_models_dir().to_string_lossy().to_string();
+
     if cfg!(debug_assertions) {
-        return vec![];
+        return vec![("MODEL_DIR".to_string(), models_dir)];
     }
 
     let env_dir = get_python_env_dir();
@@ -81,6 +91,7 @@ pub fn build_python_env(app: &AppHandle) -> Vec<(String, String)> {
         ("PYTHONPATH".to_string(), env_dir_str.clone()),
         ("PIP_TARGET".to_string(), env_dir_str.clone()),
         ("PIP_NO_USER".to_string(), "1".to_string()),
+        ("MODEL_DIR".to_string(), models_dir),
         (
             "PATH".to_string(),
             format!(

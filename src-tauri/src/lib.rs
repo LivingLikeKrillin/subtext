@@ -1,6 +1,7 @@
 mod commands;
 mod commands_config;
 mod commands_model;
+mod commands_stt;
 mod commands_wizard;
 mod config_manager;
 mod error;
@@ -49,6 +50,9 @@ pub fn run() {
             commands_model::delete_model,
             commands_model::get_model_manifest,
             commands_model::verify_model,
+            // STT commands
+            commands_stt::start_stt,
+            commands_stt::cancel_stt,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

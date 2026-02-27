@@ -2,8 +2,6 @@ import { useState } from "react";
 import type {
   ServerStatus,
   ResourceUsage,
-  PipelinePhase,
-  SttSegment,
   TranslateSegment,
 } from "../../types";
 import { ServerControl } from "../ServerControl";
@@ -11,6 +9,7 @@ import { FileInput } from "./FileInput";
 import { PipelineProgress } from "./PipelineProgress";
 import { SubtitlePreview } from "./SubtitlePreview";
 import { ResourceMonitor } from "./ResourceMonitor";
+import { useStt } from "../../hooks/useStt";
 
 interface WorkspaceScreenProps {
   serverStatus: ServerStatus;
@@ -27,22 +26,17 @@ export function WorkspaceScreen({
   onStopServer,
   resources,
 }: WorkspaceScreenProps) {
-  // Pipeline state — will be driven by backend events in Sprint 4-5
-  const [phase] = useState<PipelinePhase>("idle");
-  const [progress] = useState(0);
-  const [message] = useState<string | null>(null);
-  const [elapsed] = useState(0);
-  const [eta] = useState<number | null>(null);
-  const [sttSegments] = useState<SttSegment[]>([]);
-  const [translateSegments] = useState<TranslateSegment[]>([]);
-  const [activeIndex] = useState<number | null>(null);
+  const stt = useStt();
 
-  const handleFileSelected = (_path: string) => {
-    // Will trigger STT pipeline in Sprint 4
+  // Translation segments — will be driven by Sprint 5
+  const [translateSegments] = useState<TranslateSegment[]>([]);
+
+  const handleFileSelected = (path: string) => {
+    stt.startTranscription(path);
   };
 
   const handleCancel = () => {
-    // Will cancel pipeline in Sprint 4
+    stt.cancel();
   };
 
   return (
@@ -56,22 +50,22 @@ export function WorkspaceScreen({
 
       <FileInput
         onFileSelected={handleFileSelected}
-        disabled={serverStatus !== "RUNNING"}
+        disabled={serverStatus !== "RUNNING" || stt.phase === "stt"}
       />
 
       <PipelineProgress
-        phase={phase}
-        progress={progress}
-        message={message}
-        elapsed={elapsed}
-        eta={eta}
+        phase={stt.phase}
+        progress={stt.progress / 100}
+        message={stt.message}
+        elapsed={stt.elapsed}
+        eta={stt.eta}
         onCancel={handleCancel}
       />
 
       <SubtitlePreview
-        sttSegments={sttSegments}
+        sttSegments={stt.segments}
         translateSegments={translateSegments}
-        activeIndex={activeIndex}
+        activeIndex={stt.activeIndex}
       />
 
       <ResourceMonitor resources={resources} />
