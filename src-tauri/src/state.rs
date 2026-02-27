@@ -261,3 +261,83 @@ impl Default for AppState {
 }
 
 pub type SharedState = Mutex<AppState>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_app_config_default_values() {
+        let cfg = AppConfig::default();
+        assert_eq!(cfg.version, 1);
+        assert!(!cfg.wizard_completed);
+        assert_eq!(cfg.wizard_step, 0);
+        assert_eq!(cfg.profile, Profile::Lite);
+        assert_eq!(cfg.subtitle_format, "srt");
+        assert_eq!(cfg.source_language, "auto");
+        assert_eq!(cfg.target_language, "ko");
+        assert_eq!(cfg.translation_mode, "local");
+        assert_eq!(cfg.context_window, 2);
+        assert_eq!(cfg.style_preset, "natural");
+        assert_eq!(cfg.active_glossary, "default");
+        assert!(cfg.model_dir.is_none());
+        assert!(cfg.ui_language.is_none());
+    }
+
+    #[test]
+    fn test_app_config_serialization_roundtrip() {
+        let cfg = AppConfig::default();
+        let json = serde_json::to_string(&cfg).unwrap();
+        let restored: AppConfig = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(restored.version, cfg.version);
+        assert_eq!(restored.wizard_completed, cfg.wizard_completed);
+        assert_eq!(restored.profile, cfg.profile);
+        assert_eq!(restored.subtitle_format, cfg.subtitle_format);
+        assert_eq!(restored.source_language, cfg.source_language);
+        assert_eq!(restored.target_language, cfg.target_language);
+        assert_eq!(restored.context_window, cfg.context_window);
+    }
+
+    #[test]
+    fn test_profile_serde_lowercase() {
+        let json = serde_json::to_string(&Profile::Lite).unwrap();
+        assert_eq!(json, r#""lite""#);
+
+        let json = serde_json::to_string(&Profile::Balanced).unwrap();
+        assert_eq!(json, r#""balanced""#);
+
+        let json = serde_json::to_string(&Profile::Power).unwrap();
+        assert_eq!(json, r#""power""#);
+
+        // Deserialize back
+        let p: Profile = serde_json::from_str(r#""lite""#).unwrap();
+        assert_eq!(p, Profile::Lite);
+    }
+
+    #[test]
+    fn test_runtime_status_default() {
+        let rs = RuntimeStatus::default();
+        assert_eq!(rs.whisper, RuntimeModelStatus::UNLOADED);
+        assert_eq!(rs.llm, RuntimeModelStatus::UNLOADED);
+    }
+
+    #[test]
+    fn test_partial_config_all_none() {
+        let pc = PartialConfig::default();
+        assert!(pc.wizard_completed.is_none());
+        assert!(pc.wizard_step.is_none());
+        assert!(pc.profile.is_none());
+        assert!(pc.output_dir.is_none());
+        assert!(pc.subtitle_format.is_none());
+        assert!(pc.source_language.is_none());
+        assert!(pc.target_language.is_none());
+        assert!(pc.translation_mode.is_none());
+        assert!(pc.context_window.is_none());
+        assert!(pc.style_preset.is_none());
+        assert!(pc.active_glossary.is_none());
+        assert!(pc.external_api.is_none());
+        assert!(pc.model_dir.is_none());
+        assert!(pc.ui_language.is_none());
+    }
+}
