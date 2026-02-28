@@ -1,14 +1,20 @@
 import { useTranslation } from "react-i18next"
-import { Clock, Type, ArrowRight } from "lucide-react"
+import { Clock, Type, ArrowRight, Scissors, Merge } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { SubtitleLine } from "@/types"
 
 interface EditPanelProps {
   line: SubtitleLine | null
   onUpdateLine: (id: string, updates: Partial<SubtitleLine>) => void
+  onSplit: (id: string) => void
+  onMergeWithNext: (id: string) => void
+  canSplitLine: boolean
+  canMergeLine: boolean
 }
 
 function formatTimestamp(seconds: number): string {
@@ -18,7 +24,7 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}.${String(ms).padStart(3, "0")}`
 }
 
-export function EditPanel({ line, onUpdateLine }: EditPanelProps) {
+export function EditPanel({ line, onUpdateLine, onSplit, onMergeWithNext, canSplitLine, canMergeLine }: EditPanelProps) {
   const { t } = useTranslation()
 
   if (!line) {
@@ -52,6 +58,44 @@ export function EditPanel({ line, onUpdateLine }: EditPanelProps) {
           {duration.toFixed(1)}s
         </Badge>
       </div>
+
+      {/* Actions */}
+      <TooltipProvider>
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!canSplitLine}
+                onClick={() => onSplit(line.id)}
+              >
+                <Scissors className="mr-1.5 h-3.5 w-3.5" />
+                {t("editor.actions.split")}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t("editor.actions.splitTooltip")} <kbd className="ml-1 text-[10px] opacity-60">Ctrl+Shift+S</kbd></p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!canMergeLine}
+                onClick={() => onMergeWithNext(line.id)}
+              >
+                <Merge className="mr-1.5 h-3.5 w-3.5" />
+                {t("editor.actions.mergeNext")}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t("editor.actions.mergeNextTooltip")} <kbd className="ml-1 text-[10px] opacity-60">Ctrl+Shift+M</kbd></p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
 
       <Separator />
 

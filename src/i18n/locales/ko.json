@@ -68,6 +68,12 @@
       "spell_error": "오류",
       "editing": "편집 중"
     },
+    "actions": {
+      "split": "분할",
+      "mergeNext": "다음과 병합",
+      "splitTooltip": "재생 위치에서 자막 분할",
+      "mergeNextTooltip": "아래 자막과 병합"
+    },
     "stats": {
       "chars": "글자 수",
       "duration": "길이",

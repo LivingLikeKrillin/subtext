@@ -9,6 +9,7 @@ import { SubtitleList } from "./SubtitleList"
 import { EditPanel } from "./EditPanel"
 import { PlaybackControls } from "./PlaybackControls"
 import { loadJobSubtitles, saveJobSubtitles, exportSubtitles } from "@/lib/tauriApi"
+import { splitLine, mergeLines, reindex, getSplitTime, canSplit, canMerge } from "@/lib/subtitleOps"
 import type { SubtitleLine } from "@/types"
 
 interface EditorPageProps {
@@ -225,6 +226,60 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
     }
   }, [jobId, lines, subtitleFormat, outputDir])
 
+  const handleSplitLine = useCallback((id: string) => {
+    setLines((prev) => {
+      const idx = prev.findIndex((l) => l.id === id)
+      if (idx < 0) return prev
+      const line = prev[idx]
+      if (!canSplit(line)) return prev
+      const time = getSplitTime(line, currentTime)
+      const [first, second] = splitLine(line, time)
+      const next = [...prev]
+      next.splice(idx, 1, first, second)
+      setSelectedId(first.id)
+      setDirty(true)
+      return reindex(next)
+    })
+  }, [currentTime])
+
+  const handleMergeWithNext = useCallback((id: string) => {
+    setLines((prev) => {
+      const idx = prev.findIndex((l) => l.id === id)
+      if (idx < 0 || idx >= prev.length - 1) return prev
+      const merged = mergeLines(prev[idx], prev[idx + 1])
+      const next = [...prev]
+      next.splice(idx, 2, merged)
+      setSelectedId(merged.id)
+      setDirty(true)
+      return reindex(next)
+    })
+  }, [])
+
+  // Keyboard shortcuts for split/merge
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!selectedId) return
+      if (e.ctrlKey && e.shiftKey && e.key === "S") {
+        e.preventDefault()
+        handleSplitLine(selectedId)
+      }
+      if (e.ctrlKey && e.shiftKey && e.key === "M") {
+        e.preventDefault()
+        handleMergeWithNext(selectedId)
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [selectedId, handleSplitLine, handleMergeWithNext])
+
+  const canSplitLine = useMemo(() => {
+    return selectedLine ? canSplit(selectedLine) : false
+  }, [selectedLine])
+
+  const canMergeLine = useMemo(() => {
+    return selectedLine ? canMerge(selectedLine, lines) : false
+  }, [selectedLine, lines])
+
   const handleSeek = useCallback((time: number) => {
     setCurrentTime(time)
     if (audioRef.current) {
@@ -341,6 +396,8 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
               selectedId={selectedId}
               currentTime={currentTime}
               onSelect={setSelectedId}
+              onSplit={handleSplitLine}
+              onMergeWithNext={handleMergeWithNext}
             />
           </ResizablePanel>
           <ResizableHandle />
@@ -348,6 +405,10 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
             <EditPanel
               line={selectedLine}
               onUpdateLine={handleUpdateLine}
+              onSplit={handleSplitLine}
+              onMergeWithNext={handleMergeWithNext}
+              canSplitLine={canSplitLine}
+              canMergeLine={canMergeLine}
             />
           </ResizablePanel>
         </ResizablePanelGroup>

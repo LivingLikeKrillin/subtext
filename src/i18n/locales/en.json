@@ -68,6 +68,12 @@
       "spell_error": "Error",
       "editing": "Editing"
     },
+    "actions": {
+      "split": "Split",
+      "mergeNext": "Merge with next",
+      "splitTooltip": "Split subtitle at playhead position",
+      "mergeNextTooltip": "Merge with the subtitle below"
+    },
     "stats": {
       "chars": "Characters",
       "duration": "Duration",
