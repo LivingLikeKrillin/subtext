@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Subtitles, HardDrive, Settings } from "lucide-react";
 import type { MainPage, RuntimeStatus } from "../../types";
 import { StatusBadge } from "../shared/StatusBadge";
+import { Logo } from "../shared/Logo";
 
 interface SidebarProps {
   activePage: MainPage;
@@ -25,9 +26,7 @@ export function Sidebar({ activePage, runtime, onNavigate }: SidebarProps) {
     <aside className="flex h-screen w-[220px] flex-shrink-0 flex-col border-r border-border bg-surface">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
-          S
-        </div>
+        <Logo size={28} />
         <span className="text-[15px] font-semibold text-slate-50">SubText</span>
       </div>
 

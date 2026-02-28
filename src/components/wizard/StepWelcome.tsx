@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Subtitles } from "lucide-react";
+import { Logo } from "../shared/Logo";
 
 interface StepWelcomeProps {
   onNext: () => void;
@@ -11,7 +11,7 @@ export function StepWelcome({ onNext, onSkip }: StepWelcomeProps) {
 
   return (
     <div className="text-center">
-      <Subtitles className="mx-auto mb-4 h-10 w-10 text-primary" />
+      <Logo size={48} className="mx-auto mb-4" />
       <h2 className="mb-4 text-2xl font-bold text-slate-50">
         {t("wizard.welcome.title")}
       </h2>

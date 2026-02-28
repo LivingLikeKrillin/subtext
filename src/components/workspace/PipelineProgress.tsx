@@ -20,7 +20,7 @@ function formatTime(secs: number): string {
 const phaseColor: Record<PipelinePhase, string> = {
   idle: "text-slate-500",
   stt: "text-primary",
-  translating: "text-violet-400",
+  translating: "text-accent",
   done: "text-success",
   error: "text-danger",
   cancelled: "text-warning",
