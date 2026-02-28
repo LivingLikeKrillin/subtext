@@ -33,7 +33,7 @@ interface DashboardPageProps {
   vocabularies: Vocabulary[]
   onNewJob: (files: SelectedFile[], presetId: string) => void
   onRemoveJob: (id: string) => void
-  onOpenEditor?: (jobId: string) => void
+  onOpenEditor?: (jobId: string, filePath: string) => void
 }
 
 type FilterStatus = "all" | JobStatus
@@ -159,7 +159,7 @@ export function DashboardPage({
                 <TableRow
                   key={job.id}
                   className="group cursor-pointer"
-                  onClick={() => job.status === "completed" && onOpenEditor?.(job.id)}
+                  onClick={() => job.status === "completed" && onOpenEditor?.(job.id, job.file_path)}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2.5">

@@ -1,6 +1,7 @@
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Save, Download, FileText } from "lucide-react"
+import { convertFileSrc } from "@tauri-apps/api/core"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { Button } from "@/components/ui/button"
 import { Waveform } from "./Waveform"
@@ -12,17 +13,25 @@ import type { SubtitleLine } from "@/types"
 
 interface EditorPageProps {
   jobId: string | null
+  filePath: string | null
   outputDir: string
   subtitleFormat: string
 }
 
-export function EditorPage({ jobId, outputDir, subtitleFormat }: EditorPageProps) {
+export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: EditorPageProps) {
   const { t } = useTranslation()
   const [lines, setLines] = useState<SubtitleLine[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [dirty, setDirty] = useState(false)
+
+  // Audio state
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [audioReady, setAudioReady] = useState(false)
+  const [audioDuration, setAudioDuration] = useState<number | null>(null)
+  const [peaks, setPeaks] = useState<number[]>([])
+  const [volume, setVolume] = useState(1)
 
   // Load subtitles when jobId changes
   useEffect(() => {
@@ -44,18 +53,132 @@ export function EditorPage({ jobId, outputDir, subtitleFormat }: EditorPageProps
       .catch((e) => console.error("Failed to load subtitles:", e))
   }, [jobId])
 
-  const duration = useMemo(() => {
+  // Audio lifecycle: create HTMLAudioElement when filePath changes
+  useEffect(() => {
+    // Reset audio state
+    setAudioReady(false)
+    setAudioDuration(null)
+    setPeaks([])
+
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ""
+      audioRef.current = null
+    }
+
+    if (!filePath) return
+
+    const assetUrl = convertFileSrc(filePath)
+    const audio = new Audio()
+    audioRef.current = audio
+    audio.volume = volume
+
+    const onLoadedMetadata = () => {
+      setAudioDuration(audio.duration)
+      setAudioReady(true)
+    }
+    const onTimeUpdate = () => {
+      setCurrentTime(audio.currentTime)
+    }
+    const onEnded = () => {
+      setIsPlaying(false)
+    }
+    const onError = () => {
+      console.warn("Audio load failed, falling back to timer simulation")
+      setAudioReady(false)
+    }
+
+    audio.addEventListener("loadedmetadata", onLoadedMetadata)
+    audio.addEventListener("timeupdate", onTimeUpdate)
+    audio.addEventListener("ended", onEnded)
+    audio.addEventListener("error", onError)
+    audio.src = assetUrl
+
+    return () => {
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata)
+      audio.removeEventListener("timeupdate", onTimeUpdate)
+      audio.removeEventListener("ended", onEnded)
+      audio.removeEventListener("error", onError)
+      audio.pause()
+      audio.src = ""
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filePath])
+
+  // Peaks extraction after audio is ready
+  useEffect(() => {
+    if (!audioReady || !filePath) return
+
+    const assetUrl = convertFileSrc(filePath)
+    let cancelled = false
+
+    async function extractPeaks() {
+      try {
+        const response = await fetch(assetUrl)
+        const arrayBuffer = await response.arrayBuffer()
+        const audioCtx = new AudioContext()
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+
+        if (cancelled) { audioCtx.close(); return }
+
+        // Mono mixdown
+        const numChannels = audioBuffer.numberOfChannels
+        const length = audioBuffer.length
+        const mono = new Float32Array(length)
+        for (let ch = 0; ch < numChannels; ch++) {
+          const channelData = audioBuffer.getChannelData(ch)
+          for (let i = 0; i < length; i++) {
+            mono[i] += channelData[i] / numChannels
+          }
+        }
+
+        // Bucket into 2000 max-amplitude peaks
+        const bucketCount = Math.min(2000, length)
+        const bucketSize = Math.floor(length / bucketCount)
+        const result: number[] = []
+        for (let b = 0; b < bucketCount; b++) {
+          let max = 0
+          const start = b * bucketSize
+          const end = Math.min(start + bucketSize, length)
+          for (let i = start; i < end; i++) {
+            const abs = Math.abs(mono[i])
+            if (abs > max) max = abs
+          }
+          result.push(max)
+        }
+
+        if (!cancelled) setPeaks(result)
+        audioCtx.close()
+      } catch (e) {
+        console.warn("Peak extraction failed:", e)
+        if (!cancelled) setPeaks([])
+      }
+    }
+
+    extractPeaks()
+    return () => { cancelled = true }
+  }, [audioReady, filePath])
+
+  // Sync volume to audio element
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume
+  }, [volume])
+
+  const subtitleDuration = useMemo(() => {
     if (lines.length === 0) return 0
     return Math.max(...lines.map((l) => l.end_time))
   }, [lines])
+
+  const duration = audioDuration ?? subtitleDuration
 
   const selectedLine = useMemo(
     () => lines.find((l) => l.id === selectedId) ?? null,
     [lines, selectedId],
   )
 
-  // Simulated playback
+  // Timer simulation fallback (only when audio is NOT ready)
   useEffect(() => {
+    if (audioReady) return // real audio handles timeupdate
     if (!isPlaying) return
     const interval = setInterval(() => {
       setCurrentTime((t) => {
@@ -67,7 +190,7 @@ export function EditorPage({ jobId, outputDir, subtitleFormat }: EditorPageProps
       })
     }, 100)
     return () => clearInterval(interval)
-  }, [isPlaying, duration])
+  }, [audioReady, isPlaying, duration])
 
   const handleUpdateLine = useCallback((id: string, updates: Partial<SubtitleLine>) => {
     setLines((prev) =>
@@ -104,15 +227,31 @@ export function EditorPage({ jobId, outputDir, subtitleFormat }: EditorPageProps
 
   const handleSeek = useCallback((time: number) => {
     setCurrentTime(time)
+    if (audioRef.current) {
+      audioRef.current.currentTime = time
+    }
   }, [])
+
+  const handleTogglePlay = useCallback(() => {
+    if (audioReady && audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause()
+      } else {
+        audioRef.current.play()
+      }
+    }
+    setIsPlaying((p) => !p)
+  }, [audioReady, isPlaying])
 
   const handleSkipPrev = useCallback(() => {
     const prev = [...lines].reverse().find((l) => l.start_time < currentTime - 0.5)
     if (prev) {
       setCurrentTime(prev.start_time)
       setSelectedId(prev.id)
+      if (audioRef.current) audioRef.current.currentTime = prev.start_time
     } else {
       setCurrentTime(0)
+      if (audioRef.current) audioRef.current.currentTime = 0
     }
   }, [lines, currentTime])
 
@@ -121,6 +260,7 @@ export function EditorPage({ jobId, outputDir, subtitleFormat }: EditorPageProps
     if (next) {
       setCurrentTime(next.start_time)
       setSelectedId(next.id)
+      if (audioRef.current) audioRef.current.currentTime = next.start_time
     }
   }, [lines, currentTime])
 
@@ -174,6 +314,7 @@ export function EditorPage({ jobId, outputDir, subtitleFormat }: EditorPageProps
             currentTime={currentTime}
             selectedId={selectedId}
             duration={duration}
+            peaks={peaks}
             onSeek={handleSeek}
             onSelect={setSelectedId}
           />
@@ -184,10 +325,12 @@ export function EditorPage({ jobId, outputDir, subtitleFormat }: EditorPageProps
           currentTime={currentTime}
           duration={duration}
           isPlaying={isPlaying}
-          onTogglePlay={() => setIsPlaying((p) => !p)}
+          volume={volume}
+          onTogglePlay={handleTogglePlay}
           onSeek={handleSeek}
           onSkipPrev={handleSkipPrev}
           onSkipNext={handleSkipNext}
+          onVolumeChange={setVolume}
         />
 
         {/* Subtitle list + Edit panel */}

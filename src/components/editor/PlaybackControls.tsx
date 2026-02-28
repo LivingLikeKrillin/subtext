@@ -1,15 +1,18 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2 } from "lucide-react"
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface PlaybackControlsProps {
   currentTime: number
   duration: number
   isPlaying: boolean
+  volume: number
   onTogglePlay: () => void
   onSeek: (time: number) => void
   onSkipPrev: () => void
   onSkipNext: () => void
+  onVolumeChange: (v: number) => void
 }
 
 function formatTime(seconds: number): string {
@@ -25,11 +28,15 @@ export function PlaybackControls({
   currentTime,
   duration,
   isPlaying,
+  volume,
   onTogglePlay,
   onSeek,
   onSkipPrev,
   onSkipNext,
+  onVolumeChange,
 }: PlaybackControlsProps) {
+  const VolumeIcon = volume === 0 ? VolumeX : Volume2
+
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-t bg-muted/20">
       <div className="flex items-center gap-1">
@@ -61,7 +68,26 @@ export function PlaybackControls({
         {formatTime(duration)}
       </span>
 
-      <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7">
+            <VolumeIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent side="top" className="w-40 p-3">
+          <div className="flex items-center gap-2">
+            <VolumeIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Slider
+              value={[volume]}
+              onValueChange={([v]) => onVolumeChange(v)}
+              min={0}
+              max={1}
+              step={0.05}
+              className="flex-1"
+            />
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }

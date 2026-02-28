@@ -57,6 +57,7 @@ function App() {
   const [activePage, setActivePage] = useState<MainPage>("dashboard");
   const [dashboardJobs, setDashboardJobs] = useState<DashboardJob[]>([]);
   const [editorJobId, setEditorJobId] = useState<string | null>(null);
+  const [editorFilePath, setEditorFilePath] = useState<string | null>(null);
 
   const handleJobUpdate = useCallback(
     (jobId: string, update: { status?: DashboardJob["status"]; stage?: DashboardJob["stage"]; progress?: number; error?: string }) => {
@@ -201,8 +202,9 @@ function App() {
                 vocabularies={vocabulariesHook.vocabularies}
                 onNewJob={handleNewJob}
                 onRemoveJob={handleRemoveJob}
-                onOpenEditor={(jobId) => {
+                onOpenEditor={(jobId, filePath) => {
                   setEditorJobId(jobId);
+                  setEditorFilePath(filePath);
                   setActivePage("editor");
                 }}
               />
@@ -211,6 +213,7 @@ function App() {
             {activePage === "editor" && config && (
               <EditorPage
                 jobId={editorJobId}
+                filePath={editorFilePath}
                 outputDir={config.output_dir}
                 subtitleFormat={config.subtitle_format}
               />

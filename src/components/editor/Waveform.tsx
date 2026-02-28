@@ -6,6 +6,7 @@ interface WaveformProps {
   currentTime: number
   selectedId: string | null
   duration: number
+  peaks?: number[]
   onSeek: (time: number) => void
   onSelect: (id: string) => void
 }
@@ -15,6 +16,7 @@ export function Waveform({
   currentTime,
   selectedId,
   duration,
+  peaks,
   onSeek,
   onSelect,
 }: WaveformProps) {
@@ -59,6 +61,20 @@ export function Waveform({
       const min = Math.floor(t / 60)
       const sec = Math.floor(t % 60)
       ctx.fillText(`${min}:${String(sec).padStart(2, "0")}`, x + 2, h - 4)
+    }
+
+    // Waveform peaks (symmetric bars from center)
+    if (peaks && peaks.length > 0) {
+      const centerY = h / 2
+      const maxBarH = h * 0.4 // max half-height of each bar
+      const barW = Math.max(w / peaks.length, 1)
+      ctx.fillStyle = isDark ? "hsla(245, 60%, 55%, 0.35)" : "hsla(245, 60%, 55%, 0.25)"
+      for (let i = 0; i < peaks.length; i++) {
+        const x = (i / peaks.length) * w
+        const barH = peaks[i] * maxBarH
+        if (barH < 0.5) continue
+        ctx.fillRect(x, centerY - barH, barW, barH * 2)
+      }
     }
 
     // Subtitle blocks
@@ -122,7 +138,7 @@ export function Waveform({
     ctx.lineTo(phX, 6)
     ctx.closePath()
     ctx.fill()
-  }, [lines, currentTime, selectedId, duration])
+  }, [lines, currentTime, selectedId, duration, peaks])
 
   useEffect(() => {
     draw()
