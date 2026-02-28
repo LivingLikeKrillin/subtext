@@ -173,6 +173,9 @@
     "profile": {
       "title": "Performance Profile",
       "description": "Choose a profile that matches your hardware capabilities.",
+      "hardwareTitle": "System Hardware",
+      "detecting": "Detecting hardware...",
+      "recommended": "Recommended",
       "lite": "Lite",
       "liteDesc": "CPU only. Smallest models, lowest resource usage.",
       "balanced": "Balanced",
@@ -201,6 +204,10 @@
     "models": {
       "title": "Installed Models",
       "empty": "No models installed.",
+      "whisperSection": "Speech Recognition (Whisper)",
+      "llmSection": "Translation (LLM)",
+      "active": "Active",
+      "setActive": "Use this model",
       "delete": "Delete",
       "confirmDelete": "Delete Model",
       "confirmDeleteMsg": "Are you sure you want to delete this model? You can re-download it later.",

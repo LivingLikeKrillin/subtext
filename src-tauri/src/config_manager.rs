@@ -78,6 +78,12 @@ pub fn update_config(partial: PartialConfig, current: &mut AppConfig) -> Result<
     if let Some(v) = partial.ui_language {
         current.ui_language = v;
     }
+    if let Some(v) = partial.active_whisper_model {
+        current.active_whisper_model = v;
+    }
+    if let Some(v) = partial.active_llm_model {
+        current.active_llm_model = v;
+    }
 
     save_config(current)
 }

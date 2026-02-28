@@ -80,6 +80,8 @@ export interface AppConfig {
   external_api: ExternalApiConfig;
   model_dir: string | null;
   ui_language: string | null;
+  active_whisper_model: string | null;
+  active_llm_model: string | null;
 }
 
 export interface PartialConfig {
@@ -97,6 +99,8 @@ export interface PartialConfig {
   external_api?: ExternalApiConfig;
   model_dir?: string | null;
   ui_language?: string | null;
+  active_whisper_model?: string | null;
+  active_llm_model?: string | null;
 }
 
 // ── Glossary types ──

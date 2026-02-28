@@ -104,6 +104,15 @@ export function SettingsPage({
         {activeTab === "models" && (
           <ModelManager
             manifest={manifest}
+            activeWhisperModel={config.active_whisper_model}
+            activeLlmModel={config.active_llm_model}
+            onSelectActive={(type, id) => {
+              if (type === "whisper") {
+                handleConfigPatch({ active_whisper_model: id });
+              } else {
+                handleConfigPatch({ active_llm_model: id });
+              }
+            }}
             onDelete={onDeleteModel}
             onDownload={onDownloadModel}
           />

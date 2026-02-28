@@ -103,6 +103,8 @@ pub struct AppConfig {
     pub external_api: ExternalApiConfig,
     pub model_dir: Option<String>,
     pub ui_language: Option<String>,
+    pub active_whisper_model: Option<String>,
+    pub active_llm_model: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -124,6 +126,8 @@ impl Default for AppConfig {
             external_api: ExternalApiConfig::default(),
             model_dir: None,
             ui_language: None,
+            active_whisper_model: None,
+            active_llm_model: None,
         }
     }
 }
@@ -152,6 +156,8 @@ pub struct PartialConfig {
     pub external_api: Option<ExternalApiConfig>,
     pub model_dir: Option<Option<String>>,
     pub ui_language: Option<Option<String>>,
+    pub active_whisper_model: Option<Option<String>>,
+    pub active_llm_model: Option<Option<String>>,
 }
 
 // ── Glossary types ──
@@ -282,6 +288,8 @@ mod tests {
         assert_eq!(cfg.active_glossary, "default");
         assert!(cfg.model_dir.is_none());
         assert!(cfg.ui_language.is_none());
+        assert!(cfg.active_whisper_model.is_none());
+        assert!(cfg.active_llm_model.is_none());
     }
 
     #[test]
@@ -339,5 +347,7 @@ mod tests {
         assert!(pc.external_api.is_none());
         assert!(pc.model_dir.is_none());
         assert!(pc.ui_language.is_none());
+        assert!(pc.active_whisper_model.is_none());
+        assert!(pc.active_llm_model.is_none());
     }
 }
