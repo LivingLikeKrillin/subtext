@@ -197,6 +197,23 @@ export interface SubtitleLine {
   status: "translated" | "untranslated" | "spell_error" | "editing";
 }
 
+// ── Dashboard job ──
+
+export interface DashboardJob {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  duration: number;
+  preset_id: string;
+  status: JobStatus;
+  stage: JobStage;
+  progress: number;
+  error?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
 // ── Screen navigation ──
 
 export type AppScreen = "BOOT" | "WIZARD" | "SETUP" | "MAIN";

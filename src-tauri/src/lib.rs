@@ -1,6 +1,7 @@
 mod commands;
 mod commands_config;
 mod commands_export;
+mod commands_job;
 mod commands_model;
 mod commands_preset;
 mod commands_runtime;
@@ -14,6 +15,7 @@ mod contracts;
 mod error;
 mod hw_detector;
 mod job;
+mod job_manager;
 mod manifest_manager;
 mod model_downloader;
 mod preset_manager;
@@ -83,6 +85,9 @@ pub fn run() {
             commands_preset::add_preset,
             commands_preset::update_preset,
             commands_preset::remove_preset,
+            // Dashboard job commands
+            commands_job::load_dashboard_jobs,
+            commands_job::save_dashboard_jobs,
             // Vocabulary commands
             commands_vocabulary::get_vocabularies,
             commands_vocabulary::add_vocabulary,

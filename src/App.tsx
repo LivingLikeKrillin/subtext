@@ -16,12 +16,13 @@ import { ThemeProvider } from "./components/theme-provider";
 import { AppSidebar } from "./components/app-sidebar";
 import { PageHeader } from "./components/page-header";
 import { SidebarProvider, SidebarInset } from "./components/ui/sidebar";
-import { DashboardPage, type DashboardJob } from "./components/dashboard/DashboardPage";
+import { DashboardPage } from "./components/dashboard/DashboardPage";
 import { EditorPage } from "./components/editor/EditorPage";
 import { PresetsPage } from "./components/presets/PresetsPage";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { Toaster } from "./components/ui/sonner";
-import type { AppScreen, MainPage } from "./types";
+import type { AppScreen, MainPage, DashboardJob } from "./types";
+import { loadDashboardJobs, saveDashboardJobs } from "./lib/tauriApi";
 
 function determineScreen(
   configLoading: boolean,
@@ -76,6 +77,30 @@ function App() {
       detectHw();
     }
   }, [screen, hardware, detectHw]);
+
+  // Load persisted jobs when entering main screen
+  const [jobsLoaded, setJobsLoaded] = useState(false);
+  useEffect(() => {
+    if (screen === "MAIN" && !jobsLoaded) {
+      loadDashboardJobs()
+        .then((saved) => {
+          if (saved.length > 0) setDashboardJobs(saved);
+          setJobsLoaded(true);
+        })
+        .catch((e) => {
+          console.error("Failed to load dashboard jobs:", e);
+          setJobsLoaded(true);
+        });
+    }
+  }, [screen, jobsLoaded]);
+
+  // Persist jobs to disk whenever they change (after initial load)
+  useEffect(() => {
+    if (!jobsLoaded) return;
+    saveDashboardJobs(dashboardJobs).catch((e) =>
+      console.error("Failed to save dashboard jobs:", e),
+    );
+  }, [dashboardJobs, jobsLoaded]);
 
   const handleWizardComplete = useCallback(() => {
     reloadConfig();

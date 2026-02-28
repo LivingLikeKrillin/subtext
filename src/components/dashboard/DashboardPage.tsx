@@ -25,23 +25,7 @@ import {
 } from "@/components/ui/tooltip"
 import { JobStatusBadge } from "./JobStatusBadge"
 import { NewJobDialog, type SelectedFile } from "./NewJobDialog"
-import type { JobStatus, JobStage, Preset, Vocabulary } from "@/types"
-
-// Dashboard-specific job representation (extends the basic Job)
-export interface DashboardJob {
-  id: string
-  file_name: string
-  file_path: string
-  file_size: number
-  duration: number
-  preset_id: string
-  status: JobStatus
-  stage: JobStage
-  progress: number
-  error?: string
-  created_at: string
-  completed_at?: string
-}
+import type { JobStatus, DashboardJob, Preset, Vocabulary } from "@/types"
 
 interface DashboardPageProps {
   jobs: DashboardJob[]

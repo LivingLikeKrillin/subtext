@@ -16,6 +16,7 @@ import type {
   Preset,
   Vocabulary,
   SubtitleLine,
+  DashboardJob,
 } from "../types";
 
 export async function startServer(): Promise<void> {
@@ -245,6 +246,16 @@ export async function updateVocabulary(vocabulary: Vocabulary): Promise<Vocabula
 
 export async function removeVocabulary(id: string): Promise<Vocabulary[]> {
   return invoke("remove_vocabulary", { id });
+}
+
+// ── Dashboard job commands ──
+
+export async function loadDashboardJobs(): Promise<DashboardJob[]> {
+  return invoke("load_dashboard_jobs");
+}
+
+export async function saveDashboardJobs(jobs: DashboardJob[]): Promise<void> {
+  await invoke("save_dashboard_jobs", { jobs });
 }
 
 // ── Subtitle commands ──
