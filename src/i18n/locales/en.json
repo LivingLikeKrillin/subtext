@@ -93,7 +93,20 @@
     "deleteTooltip": "Delete this subtitle",
     "startTime": "Start",
     "endTime": "End",
-    "playbackSpeed": "Speed"
+    "playbackSpeed": "Speed",
+    "video": {
+      "show": "Show Video",
+      "hide": "Hide Video"
+    },
+    "findReplace": {
+      "title": "Find & Replace",
+      "placeholder": "Find in subtitles...",
+      "replacePlaceholder": "Replace with...",
+      "replace": "Replace",
+      "replaceAll": "Replace All",
+      "caseSensitive": "Case Sensitive",
+      "searchOriginal": "Search Original Text"
+    }
   },
   "presets": {
     "description": "Translation presets & vocabularies",
@@ -131,7 +144,12 @@
       "casual": "Casual",
       "honorific": "Honorific"
     },
-    "default": "Default"
+    "default": "Default",
+    "vocab": {
+      "importCsv": "Import CSV",
+      "imported": "{{count}} entries imported",
+      "importFailed": "Failed to import CSV"
+    }
   },
   "server": {
     "title": "Python Server",
@@ -416,7 +434,17 @@
       "llmEngine": "LLM Engine",
       "license": "License",
       "github": "GitHub Repository",
-      "reportIssue": "Report an Issue"
+      "reportIssue": "Report an Issue",
+      "updates": {
+        "title": "Updates",
+        "check": "Check for updates",
+        "checking": "Checking for updates...",
+        "available": "Update available",
+        "upToDate": "You're up to date",
+        "install": "Download & Install",
+        "installing": "Installing...",
+        "error": "Update check failed"
+      }
     },
     "translation": {
       "title": "Translation",

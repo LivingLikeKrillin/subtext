@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { Save, Download, FileText, Undo2, Redo2 } from "lucide-react"
+import { Save, Download, FileText, Undo2, Redo2, Search, Video, VideoOff } from "lucide-react"
 import { toastSuccess, toastError } from "@/lib/toast"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
@@ -10,10 +10,20 @@ import { Waveform } from "./Waveform"
 import { SubtitleList } from "./SubtitleList"
 import { EditPanel } from "./EditPanel"
 import { PlaybackControls } from "./PlaybackControls"
+import { FindReplaceBar } from "./FindReplaceBar"
+import { WaveformMinimap } from "./WaveformMinimap"
+import { VideoPreview } from "./VideoPreview"
 import { loadJobSubtitles, saveJobSubtitles, exportSubtitles } from "@/lib/tauriApi"
 import { splitLine, mergeLines, reindex, getSplitTime, canSplit, canMerge } from "@/lib/subtitleOps"
 import { useHistory } from "@/hooks/useHistory"
 import type { SubtitleLine } from "@/types"
+
+export interface SearchMatch {
+  lineId: string
+  field: "original" | "translated"
+  startIdx: number
+  length: number
+}
 
 interface EditorPageProps {
   jobId: string | null
@@ -31,12 +41,25 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
   const [dirty, setDirty] = useState(false)
   const [playbackRate, setPlaybackRate] = useState(1)
 
-  // Audio state
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [audioReady, setAudioReady] = useState(false)
-  const [audioDuration, setAudioDuration] = useState<number | null>(null)
+  // Media state (audio or video)
+  const mediaRef = useRef<HTMLMediaElement | null>(null)
+  const [mediaReady, setMediaReady] = useState(false)
+  const [mediaDuration, setMediaDuration] = useState<number | null>(null)
   const [peaks, setPeaks] = useState<number[]>([])
   const [volume, setVolume] = useState(1)
+  const [showVideo, setShowVideo] = useState(true)
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null)
+
+  // Zoom & Pan state
+  const [zoomLevel, setZoomLevel] = useState(1)
+
+  // Find & Replace state
+  const [findOpen, setFindOpen] = useState(false)
+  const [findQuery, setFindQuery] = useState("")
+  const [replaceQuery, setReplaceQuery] = useState("")
+  const [caseSensitive, setCaseSensitive] = useState(false)
+  const [searchOriginal, setSearchOriginal] = useState(false)
+  const [matchIndex, setMatchIndex] = useState(0)
 
   // Load subtitles when jobId changes
   useEffect(() => {
@@ -61,62 +84,74 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
       })
   }, [jobId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Audio lifecycle: create HTMLAudioElement when filePath changes
-  useEffect(() => {
-    // Reset audio state
-    setAudioReady(false)
-    setAudioDuration(null)
-    setPeaks([])
+  // Detect video file by extension
+  const isVideo = useMemo(() => {
+    if (!filePath) return false
+    const ext = filePath.split(".").pop()?.toLowerCase() ?? ""
+    return ["mp4", "mkv", "avi", "mov", "webm"].includes(ext)
+  }, [filePath])
 
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.src = ""
-      audioRef.current = null
+  // Media lifecycle: create HTMLAudioElement or HTMLVideoElement when filePath changes
+  useEffect(() => {
+    // Reset media state
+    setMediaReady(false)
+    setMediaDuration(null)
+    setPeaks([])
+    setVideoElement(null)
+
+    if (mediaRef.current) {
+      mediaRef.current.pause()
+      mediaRef.current.src = ""
+      mediaRef.current = null
     }
 
     if (!filePath) return
 
     const assetUrl = convertFileSrc(filePath)
-    const audio = new Audio()
-    audioRef.current = audio
-    audio.volume = volume
-    audio.playbackRate = playbackRate
+    const media = isVideo ? document.createElement("video") : new Audio()
+    mediaRef.current = media
+    media.volume = volume
+    media.playbackRate = playbackRate
+
+    if (isVideo) {
+      setVideoElement(media as HTMLVideoElement)
+    }
 
     const onLoadedMetadata = () => {
-      setAudioDuration(audio.duration)
-      setAudioReady(true)
+      setMediaDuration(media.duration)
+      setMediaReady(true)
     }
     const onTimeUpdate = () => {
-      setCurrentTime(audio.currentTime)
+      setCurrentTime(media.currentTime)
     }
     const onEnded = () => {
       setIsPlaying(false)
     }
     const onError = () => {
-      console.warn("Audio load failed, falling back to timer simulation")
-      setAudioReady(false)
+      console.warn("Media load failed, falling back to timer simulation")
+      setMediaReady(false)
     }
 
-    audio.addEventListener("loadedmetadata", onLoadedMetadata)
-    audio.addEventListener("timeupdate", onTimeUpdate)
-    audio.addEventListener("ended", onEnded)
-    audio.addEventListener("error", onError)
-    audio.src = assetUrl
+    media.addEventListener("loadedmetadata", onLoadedMetadata)
+    media.addEventListener("timeupdate", onTimeUpdate)
+    media.addEventListener("ended", onEnded)
+    media.addEventListener("error", onError)
+    media.src = assetUrl
 
     return () => {
-      audio.removeEventListener("loadedmetadata", onLoadedMetadata)
-      audio.removeEventListener("timeupdate", onTimeUpdate)
-      audio.removeEventListener("ended", onEnded)
-      audio.removeEventListener("error", onError)
-      audio.pause()
-      audio.src = ""
+      media.removeEventListener("loadedmetadata", onLoadedMetadata)
+      media.removeEventListener("timeupdate", onTimeUpdate)
+      media.removeEventListener("ended", onEnded)
+      media.removeEventListener("error", onError)
+      media.pause()
+      media.src = ""
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filePath])
+  }, [filePath, isVideo])
 
   // Peaks extraction after audio is ready
   useEffect(() => {
-    if (!audioReady || !filePath) return
+    if (!mediaReady || !filePath) return
 
     const assetUrl = convertFileSrc(filePath)
     let cancelled = false
@@ -166,16 +201,16 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
 
     extractPeaks()
     return () => { cancelled = true }
-  }, [audioReady, filePath])
+  }, [mediaReady, filePath])
 
   // Sync volume to audio element
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume
+    if (mediaRef.current) mediaRef.current.volume = volume
   }, [volume])
 
   // Sync playback rate to audio element
   useEffect(() => {
-    if (audioRef.current) audioRef.current.playbackRate = playbackRate
+    if (mediaRef.current) mediaRef.current.playbackRate = playbackRate
   }, [playbackRate])
 
   const subtitleDuration = useMemo(() => {
@@ -183,7 +218,44 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
     return Math.max(...lines.map((l) => l.end_time))
   }, [lines])
 
-  const duration = audioDuration ?? subtitleDuration
+  const duration = mediaDuration ?? subtitleDuration
+
+  // Zoom & Pan
+  const visibleDuration = useMemo(() => duration / zoomLevel, [duration, zoomLevel])
+  const [viewStart, setViewStart] = useState(0)
+
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel((z) => Math.min(z * 2, 16))
+  }, [])
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel((z) => {
+      const next = Math.max(z / 2, 1)
+      if (next === 1) setViewStart(0)
+      return next
+    })
+  }, [])
+
+  const handleViewStartChange = useCallback(
+    (vs: number) => {
+      setViewStart(Math.max(0, Math.min(vs, Math.max(duration - visibleDuration, 0))))
+    },
+    [duration, visibleDuration],
+  )
+
+  // Auto-follow playhead during playback
+  useEffect(() => {
+    if (!isPlaying || zoomLevel <= 1) return
+    if (currentTime < viewStart || currentTime > viewStart + visibleDuration) {
+      setViewStart(Math.max(0, currentTime - visibleDuration * 0.25))
+    }
+  }, [currentTime, isPlaying, zoomLevel, viewStart, visibleDuration])
+
+  // Reset zoom when job changes
+  useEffect(() => {
+    setZoomLevel(1)
+    setViewStart(0)
+  }, [jobId])
 
   const selectedLine = useMemo(
     () => lines.find((l) => l.id === selectedId) ?? null,
@@ -192,7 +264,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
 
   // Timer simulation fallback (only when audio is NOT ready)
   useEffect(() => {
-    if (audioReady) return // real audio handles timeupdate
+    if (mediaReady) return // real audio handles timeupdate
     if (!isPlaying) return
     const intervalMs = 100
     const interval = setInterval(() => {
@@ -205,7 +277,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
       })
     }, intervalMs)
     return () => clearInterval(interval)
-  }, [audioReady, isPlaying, duration, playbackRate])
+  }, [mediaReady, isPlaying, duration, playbackRate])
 
   // Auto-select subtitle during playback (Sprint 4)
   useEffect(() => {
@@ -285,15 +357,93 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
   }, [lines, pushLines, selectedId])
 
   const handleTogglePlay = useCallback(() => {
-    if (audioReady && audioRef.current) {
+    if (mediaReady && mediaRef.current) {
       if (isPlaying) {
-        audioRef.current.pause()
+        mediaRef.current.pause()
       } else {
-        audioRef.current.play()
+        mediaRef.current.play()
       }
     }
     setIsPlaying((p) => !p)
-  }, [audioReady, isPlaying])
+  }, [mediaReady, isPlaying])
+
+  // Find & Replace: compute matches
+  const searchMatches = useMemo<SearchMatch[]>(() => {
+    if (!findQuery) return []
+    const matches: SearchMatch[] = []
+    const query = caseSensitive ? findQuery : findQuery.toLowerCase()
+    for (const line of lines) {
+      if (searchOriginal) {
+        const text = caseSensitive ? line.original_text : line.original_text.toLowerCase()
+        let idx = 0
+        while ((idx = text.indexOf(query, idx)) !== -1) {
+          matches.push({ lineId: line.id, field: "original", startIdx: idx, length: findQuery.length })
+          idx += findQuery.length
+        }
+      } else {
+        const text = caseSensitive ? line.translated_text : line.translated_text.toLowerCase()
+        let idx = 0
+        while ((idx = text.indexOf(query, idx)) !== -1) {
+          matches.push({ lineId: line.id, field: "translated", startIdx: idx, length: findQuery.length })
+          idx += findQuery.length
+        }
+      }
+    }
+    return matches
+  }, [lines, findQuery, caseSensitive, searchOriginal])
+
+  // Reset matchIndex when matches change
+  useEffect(() => {
+    if (matchIndex >= searchMatches.length) {
+      setMatchIndex(0)
+    }
+  }, [searchMatches.length, matchIndex])
+
+  // Navigate to current match
+  useEffect(() => {
+    if (searchMatches.length > 0 && matchIndex < searchMatches.length) {
+      setSelectedId(searchMatches[matchIndex].lineId)
+    }
+  }, [matchIndex, searchMatches])
+
+  const handlePrevMatch = useCallback(() => {
+    if (searchMatches.length === 0) return
+    setMatchIndex((i) => (i - 1 + searchMatches.length) % searchMatches.length)
+  }, [searchMatches.length])
+
+  const handleNextMatch = useCallback(() => {
+    if (searchMatches.length === 0) return
+    setMatchIndex((i) => (i + 1) % searchMatches.length)
+  }, [searchMatches.length])
+
+  const handleReplace = useCallback(() => {
+    if (searchMatches.length === 0) return
+    const match = searchMatches[matchIndex]
+    const line = lines.find((l) => l.id === match.lineId)
+    if (!line) return
+    const field = match.field === "original" ? "original_text" : "translated_text"
+    const text = line[field]
+    const newText = text.slice(0, match.startIdx) + replaceQuery + text.slice(match.startIdx + match.length)
+    handleUpdateLine(match.lineId, { [field]: newText })
+  }, [searchMatches, matchIndex, replaceQuery, lines, handleUpdateLine])
+
+  const handleReplaceAll = useCallback(() => {
+    if (searchMatches.length === 0 || !findQuery) return
+    const updated = lines.map((line) => {
+      const field = searchOriginal ? "original_text" : "translated_text"
+      const text = line[field]
+      if (caseSensitive) {
+        const newText = text.split(findQuery).join(replaceQuery)
+        return newText !== text ? { ...line, [field]: newText } : line
+      } else {
+        const regex = new RegExp(findQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi")
+        const newText = text.replace(regex, replaceQuery)
+        return newText !== text ? { ...line, [field]: newText } : line
+      }
+    })
+    pushLines(updated)
+    setDirty(true)
+  }, [searchMatches.length, findQuery, replaceQuery, caseSensitive, searchOriginal, lines, pushLines])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -301,6 +451,18 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
       const tag = (e.target as HTMLElement)?.tagName
       const isEditing = tag === "INPUT" || tag === "TEXTAREA"
 
+      // Ctrl+F — Find & Replace
+      if (e.ctrlKey && !e.shiftKey && e.key === "f") {
+        e.preventDefault()
+        setFindOpen(true)
+        return
+      }
+      // Escape — Close Find & Replace
+      if (e.key === "Escape" && findOpen) {
+        e.preventDefault()
+        setFindOpen(false)
+        return
+      }
       // Ctrl+Z — Undo (always)
       if (e.ctrlKey && !e.shiftKey && e.key === "z") {
         e.preventDefault()
@@ -347,7 +509,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [selectedId, handleSplitLine, handleMergeWithNext, handleDeleteLine, handleSave, handleTogglePlay, undo, redo])
+  }, [selectedId, handleSplitLine, handleMergeWithNext, handleDeleteLine, handleSave, handleTogglePlay, undo, redo, findOpen])
 
   const canSplitLine = useMemo(() => {
     return selectedLine ? canSplit(selectedLine) : false
@@ -359,8 +521,8 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
 
   const handleSeek = useCallback((time: number) => {
     setCurrentTime(time)
-    if (audioRef.current) {
-      audioRef.current.currentTime = time
+    if (mediaRef.current) {
+      mediaRef.current.currentTime = time
     }
   }, [])
 
@@ -369,10 +531,10 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
     if (prev) {
       setCurrentTime(prev.start_time)
       setSelectedId(prev.id)
-      if (audioRef.current) audioRef.current.currentTime = prev.start_time
+      if (mediaRef.current) mediaRef.current.currentTime = prev.start_time
     } else {
       setCurrentTime(0)
-      if (audioRef.current) audioRef.current.currentTime = 0
+      if (mediaRef.current) mediaRef.current.currentTime = 0
     }
   }, [lines, currentTime])
 
@@ -381,7 +543,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
     if (next) {
       setCurrentTime(next.start_time)
       setSelectedId(next.id)
-      if (audioRef.current) audioRef.current.currentTime = next.start_time
+      if (mediaRef.current) mediaRef.current.currentTime = next.start_time
     }
   }, [lines, currentTime])
 
@@ -446,12 +608,78 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
               <Download className="mr-1.5 h-3.5 w-3.5" />
               {t("editor.export")}
             </Button>
+            <div className="w-px h-4 bg-border mx-1" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={findOpen ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setFindOpen((o) => !o)}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{t("editor.findReplace.title")} <kbd className="ml-1 text-[10px] opacity-60">Ctrl+F</kbd></p></TooltipContent>
+            </Tooltip>
+            {isVideo && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={showVideo ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setShowVideo((v) => !v)}
+                  >
+                    {showVideo ? <Video className="h-3.5 w-3.5" /> : <VideoOff className="h-3.5 w-3.5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{showVideo ? t("editor.video.hide") : t("editor.video.show")}</p></TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </TooltipProvider>
       </div>
 
+      {/* Find & Replace bar */}
+      {findOpen && (
+        <FindReplaceBar
+          findQuery={findQuery}
+          replaceQuery={replaceQuery}
+          caseSensitive={caseSensitive}
+          searchOriginal={searchOriginal}
+          matchCount={searchMatches.length}
+          matchIndex={matchIndex}
+          onFindQueryChange={setFindQuery}
+          onReplaceQueryChange={setReplaceQuery}
+          onCaseSensitiveChange={setCaseSensitive}
+          onSearchOriginalChange={setSearchOriginal}
+          onPrevMatch={handlePrevMatch}
+          onNextMatch={handleNextMatch}
+          onReplace={handleReplace}
+          onReplaceAll={handleReplaceAll}
+          onClose={() => setFindOpen(false)}
+        />
+      )}
+
       {/* Main content: waveform + panels */}
       <div className="flex flex-1 flex-col min-h-0">
+        {/* Video preview (visible when video file + toggled on) */}
+        {isVideo && showVideo && videoElement && (
+          <VideoPreview videoElement={videoElement} />
+        )}
+
+        {/* Minimap (visible only when zoomed) */}
+        {zoomLevel > 1 && (
+          <WaveformMinimap
+            peaks={peaks}
+            duration={duration}
+            viewStart={viewStart}
+            visibleDuration={visibleDuration}
+            onViewStartChange={handleViewStartChange}
+          />
+        )}
+
         {/* Waveform */}
         <div className="h-[100px] border-b shrink-0">
           <Waveform
@@ -460,8 +688,13 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
             selectedId={selectedId}
             duration={duration}
             peaks={peaks}
+            viewStart={viewStart}
+            visibleDuration={visibleDuration}
             onSeek={handleSeek}
             onSelect={setSelectedId}
+            onViewStartChange={handleViewStartChange}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
           />
         </div>
 
@@ -491,6 +724,8 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
               onSplit={handleSplitLine}
               onMergeWithNext={handleMergeWithNext}
               onDelete={handleDeleteLine}
+              highlightMatches={findOpen ? searchMatches : undefined}
+              currentMatchIndex={findOpen ? matchIndex : undefined}
             />
           </ResizablePanel>
           <ResizableHandle />

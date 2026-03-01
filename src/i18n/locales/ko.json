@@ -93,7 +93,20 @@
     "deleteTooltip": "이 자막 삭제",
     "startTime": "시작",
     "endTime": "끝",
-    "playbackSpeed": "재생 속도"
+    "playbackSpeed": "재생 속도",
+    "video": {
+      "show": "비디오 표시",
+      "hide": "비디오 숨기기"
+    },
+    "findReplace": {
+      "title": "찾기 및 바꾸기",
+      "placeholder": "자막에서 찾기...",
+      "replacePlaceholder": "바꿀 내용...",
+      "replace": "바꾸기",
+      "replaceAll": "모두 바꾸기",
+      "caseSensitive": "대소문자 구분",
+      "searchOriginal": "원문 검색"
+    }
   },
   "presets": {
     "description": "번역 프리셋 & 용어사전",
@@ -131,7 +144,12 @@
       "casual": "구어체",
       "honorific": "존댓말"
     },
-    "default": "기본"
+    "default": "기본",
+    "vocab": {
+      "importCsv": "CSV 가져오기",
+      "imported": "{{count}}건 가져옴",
+      "importFailed": "CSV 가져오기 실패"
+    }
   },
   "server": {
     "title": "Python 서버",
@@ -416,7 +434,17 @@
       "llmEngine": "LLM 엔진",
       "license": "라이선스",
       "github": "GitHub 저장소",
-      "reportIssue": "문제 보고"
+      "reportIssue": "문제 보고",
+      "updates": {
+        "title": "업데이트",
+        "check": "업데이트 확인",
+        "checking": "업데이트 확인 중...",
+        "available": "업데이트 가능",
+        "upToDate": "최신 버전입니다",
+        "install": "다운로드 및 설치",
+        "installing": "설치 중...",
+        "error": "업데이트 확인 실패"
+      }
     },
     "translation": {
       "title": "번역",

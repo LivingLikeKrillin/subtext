@@ -1,5 +1,6 @@
 mod commands;
 mod commands_config;
+mod commands_csv;
 mod commands_export;
 mod commands_job;
 mod commands_model;
@@ -11,6 +12,7 @@ mod commands_translate;
 mod commands_vocabulary;
 mod commands_wizard;
 mod config_manager;
+mod csv_reader;
 mod contracts;
 mod error;
 mod hw_detector;
@@ -37,6 +39,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(SharedState::new(AppState::default()))
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
@@ -105,6 +108,8 @@ pub fn run() {
             commands_vocabulary::add_vocabulary,
             commands_vocabulary::update_vocabulary,
             commands_vocabulary::remove_vocabulary,
+            // CSV commands
+            commands_csv::read_csv_file,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

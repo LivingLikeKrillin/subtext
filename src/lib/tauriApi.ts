@@ -248,6 +248,19 @@ export async function removeVocabulary(id: string): Promise<Vocabulary[]> {
   return invoke("remove_vocabulary", { id });
 }
 
+// ── CSV commands ──
+
+export interface CsvRow {
+  source: string;
+  target: string;
+  context: string | null;
+  note: string | null;
+}
+
+export async function readCsvFile(path: string): Promise<CsvRow[]> {
+  return invoke<CsvRow[]>("read_csv_file", { path });
+}
+
 // ── Dashboard job commands ──
 
 export async function loadDashboardJobs(): Promise<DashboardJob[]> {

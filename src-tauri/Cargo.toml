@@ -28,3 +28,4 @@ dirs = "6"
 sysinfo = "0.33"
 tauri-plugin-dialog = "2"
 image = { version = "0.25", default-features = false, features = ["png"] }
+tauri-plugin-updater = "2"

@@ -12,6 +12,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import type { SubtitleLine } from "@/types"
+import type { SearchMatch } from "./EditorPage"
 
 interface SubtitleListProps {
   lines: SubtitleLine[]
@@ -21,6 +22,8 @@ interface SubtitleListProps {
   onSplit: (id: string) => void
   onMergeWithNext: (id: string) => void
   onDelete?: (id: string) => void
+  highlightMatches?: SearchMatch[]
+  currentMatchIndex?: number
 }
 
 function formatTimestamp(seconds: number): string {
@@ -30,6 +33,45 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}.${String(ms).padStart(2, "0")}`
 }
 
+function HighlightedText({
+  text,
+  matches,
+  allMatches,
+  currentMatchIndex,
+}: {
+  text: string
+  matches: SearchMatch[]
+  allMatches: SearchMatch[]
+  currentMatchIndex: number
+}) {
+  if (matches.length === 0) return <>{text}</>
+
+  const sorted = [...matches].sort((a, b) => a.startIdx - b.startIdx)
+  const parts: React.ReactNode[] = []
+  let cursor = 0
+
+  for (const match of sorted) {
+    if (match.startIdx > cursor) {
+      parts.push(text.slice(cursor, match.startIdx))
+    }
+    const globalIdx = allMatches.indexOf(match)
+    const isCurrent = globalIdx === currentMatchIndex
+    parts.push(
+      <mark
+        key={`${match.startIdx}-${match.length}`}
+        className={isCurrent ? "bg-orange-400/70 text-foreground rounded-sm px-0.5" : "bg-yellow-300/50 text-foreground rounded-sm px-0.5"}
+      >
+        {text.slice(match.startIdx, match.startIdx + match.length)}
+      </mark>,
+    )
+    cursor = match.startIdx + match.length
+  }
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor))
+  }
+  return <>{parts}</>
+}
+
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   translated: "default",
   untranslated: "outline",
@@ -37,7 +79,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   editing: "secondary",
 }
 
-export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit, onMergeWithNext, onDelete }: SubtitleListProps) {
+export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit, onMergeWithNext, onDelete, highlightMatches, currentMatchIndex }: SubtitleListProps) {
   const { t } = useTranslation()
   const selectedRef = useRef<HTMLDivElement>(null)
 
@@ -94,9 +136,31 @@ export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit
 
                   {/* Text content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-snug">{line.original_text}</p>
+                    <p className="text-sm leading-snug">
+                      {highlightMatches ? (
+                        <HighlightedText
+                          text={line.original_text}
+                          matches={highlightMatches.filter((m) => m.lineId === line.id && m.field === "original")}
+                          allMatches={highlightMatches}
+                          currentMatchIndex={currentMatchIndex ?? -1}
+                        />
+                      ) : (
+                        line.original_text
+                      )}
+                    </p>
                     {line.translated_text && (
-                      <p className="text-sm leading-snug text-primary/80 mt-0.5">{line.translated_text}</p>
+                      <p className="text-sm leading-snug text-primary/80 mt-0.5">
+                        {highlightMatches ? (
+                          <HighlightedText
+                            text={line.translated_text}
+                            matches={highlightMatches.filter((m) => m.lineId === line.id && m.field === "translated")}
+                            allMatches={highlightMatches}
+                            currentMatchIndex={currentMatchIndex ?? -1}
+                          />
+                        ) : (
+                          line.translated_text
+                        )}
+                      </p>
                     )}
                   </div>
 

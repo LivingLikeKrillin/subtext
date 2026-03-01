@@ -10,6 +10,7 @@ import {
   ArrowRight,
   MoreHorizontal,
   Star,
+  FileUp,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -59,6 +60,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { toastSuccess, toastError } from "@/lib/toast"
+import { pickFile, readCsvFile } from "@/lib/tauriApi"
 import type { Preset, Vocabulary, VocabularyEntry } from "@/types"
 
 const LANG_KEYS = ["ko", "en", "ja", "zh"] as const
@@ -395,6 +398,29 @@ function VocabDialog({
     setEntries((prev) => [...prev, { id: `new-${Date.now()}`, source: "", target: "" }])
   }
 
+  async function handleImportCsv() {
+    try {
+      const path = await pickFile([{ name: "CSV", extensions: ["csv"] }])
+      if (!path) return
+      const rows = await readCsvFile(path)
+      if (rows.length === 0) {
+        toastError(t("presets.vocab.importFailed"))
+        return
+      }
+      const mapped: VocabularyEntry[] = rows.map((row) => ({
+        id: `csv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        source: row.source,
+        target: row.target,
+        context: row.context ?? undefined,
+        note: row.note ?? undefined,
+      }))
+      setEntries((prev) => [...prev, ...mapped])
+      toastSuccess(t("presets.vocab.imported", { count: rows.length }))
+    } catch {
+      toastError(t("presets.vocab.importFailed"))
+    }
+  }
+
   function updateEntry(id: string, field: keyof VocabularyEntry, value: string) {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)))
   }
@@ -499,9 +525,14 @@ function VocabDialog({
                   </TableBody>
                 </Table>
               </div>
-              <Button variant="outline" size="sm" onClick={addEntry}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Entry
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={addEntry}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Entry
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleImportCsv}>
+                  <FileUp className="mr-1.5 h-3.5 w-3.5" /> {t("presets.vocab.importCsv")}
+                </Button>
+              </div>
             </div>
           </div>
         </ScrollArea>

@@ -7,8 +7,13 @@ interface WaveformProps {
   selectedId: string | null
   duration: number
   peaks?: number[]
+  viewStart: number
+  visibleDuration: number
   onSeek: (time: number) => void
   onSelect: (id: string) => void
+  onViewStartChange: (viewStart: number) => void
+  onZoomIn: () => void
+  onZoomOut: () => void
 }
 
 export function Waveform({
@@ -17,11 +22,27 @@ export function Waveform({
   selectedId,
   duration,
   peaks,
+  viewStart,
+  visibleDuration,
   onSeek,
   onSelect,
+  onViewStartChange,
+  onZoomIn,
+  onZoomOut,
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<{ startX: number; startViewStart: number; moved: boolean } | null>(null)
+
+  const timeToX = useCallback(
+    (t: number, w: number) => ((t - viewStart) / visibleDuration) * w,
+    [viewStart, visibleDuration],
+  )
+
+  const xToTime = useCallback(
+    (x: number, w: number) => viewStart + (x / w) * visibleDuration,
+    [viewStart, visibleDuration],
+  )
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -37,7 +58,6 @@ export function Waveform({
 
     const w = rect.width
     const h = rect.height
-    const dur = Math.max(duration, 1)
 
     // Read theme colors from CSS variables
     const s = getComputedStyle(document.documentElement)
@@ -48,12 +68,27 @@ export function Waveform({
     ctx.fillStyle = `hsl(${v("--waveform-bg")})`
     ctx.fillRect(0, 0, w, h)
 
-    // Grid lines
-    const gridInterval = dur > 300 ? 60 : dur > 60 ? 10 : 5
+    // Grid lines — dynamic interval based on visible duration
+    const gridInterval =
+      visibleDuration > 300
+        ? 60
+        : visibleDuration > 120
+          ? 30
+          : visibleDuration > 60
+            ? 10
+            : visibleDuration > 20
+              ? 5
+              : visibleDuration > 5
+                ? 1
+                : 0.5
+
     ctx.strokeStyle = `hsl(${v("--waveform-grid")} / 0.5)`
     ctx.lineWidth = 0.5
-    for (let t = 0; t <= dur; t += gridInterval) {
-      const x = (t / dur) * w
+
+    const gridStart = Math.floor(viewStart / gridInterval) * gridInterval
+    for (let t = gridStart; t <= viewStart + visibleDuration; t += gridInterval) {
+      const x = timeToX(t, w)
+      if (x < -1 || x > w + 1) continue
       ctx.beginPath()
       ctx.moveTo(x, 0)
       ctx.lineTo(x, h)
@@ -64,30 +99,43 @@ export function Waveform({
       ctx.font = "10px Inter, sans-serif"
       const min = Math.floor(t / 60)
       const sec = Math.floor(t % 60)
-      ctx.fillText(`${min}:${String(sec).padStart(2, "0")}`, x + 2, h - 4)
+      const label =
+        gridInterval < 1
+          ? `${min}:${String(sec).padStart(2, "0")}.${Math.round((t % 1) * 10)}`
+          : `${min}:${String(sec).padStart(2, "0")}`
+      ctx.fillText(label, x + 2, h - 4)
     }
 
-    // Waveform peaks (symmetric bars from center)
+    // Waveform peaks — only visible range
     if (peaks && peaks.length > 0) {
       const centerY = h / 2
-      const maxBarH = h * 0.4 // max half-height of each bar
-      const barW = Math.max(w / peaks.length, 1)
+      const maxBarH = h * 0.4
+      const dur = Math.max(duration, 1)
+      const peakStartIdx = Math.max(0, Math.floor((viewStart / dur) * peaks.length) - 1)
+      const peakEndIdx = Math.min(peaks.length, Math.ceil(((viewStart + visibleDuration) / dur) * peaks.length) + 1)
+      const barW = Math.max((w / ((peakEndIdx - peakStartIdx) || 1)), 1)
+
       ctx.fillStyle = `hsl(${v("--waveform")} / ${isDark ? 0.35 : 0.25})`
-      for (let i = 0; i < peaks.length; i++) {
-        const x = (i / peaks.length) * w
+      for (let i = peakStartIdx; i < peakEndIdx; i++) {
+        const peakTime = (i / peaks.length) * dur
+        const x = timeToX(peakTime, w)
+        if (x < -barW || x > w + barW) continue
         const barH = peaks[i] * maxBarH
         if (barH < 0.5) continue
         ctx.fillRect(x, centerY - barH, barW, barH * 2)
       }
     }
 
-    // Subtitle blocks
+    // Subtitle blocks — only visible range
     const trackH = 24
     const trackY = (h - trackH) / 2 - 6
 
     for (const line of lines) {
-      const x1 = (line.start_time / dur) * w
-      const x2 = (line.end_time / dur) * w
+      // Skip if completely outside visible range
+      if (line.end_time < viewStart || line.start_time > viewStart + visibleDuration) continue
+
+      const x1 = timeToX(line.start_time, w)
+      const x2 = timeToX(line.end_time, w)
       const bw = Math.max(x2 - x1, 2)
 
       const isSelected = line.id === selectedId
@@ -126,23 +174,25 @@ export function Waveform({
     }
 
     // Playhead
-    const phX = (currentTime / dur) * w
-    ctx.strokeStyle = `hsl(${v("--playhead")})`
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.moveTo(phX, 0)
-    ctx.lineTo(phX, h)
-    ctx.stroke()
+    const phX = timeToX(currentTime, w)
+    if (phX >= -2 && phX <= w + 2) {
+      ctx.strokeStyle = `hsl(${v("--playhead")})`
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(phX, 0)
+      ctx.lineTo(phX, h)
+      ctx.stroke()
 
-    // Playhead triangle
-    ctx.fillStyle = `hsl(${v("--playhead")})`
-    ctx.beginPath()
-    ctx.moveTo(phX - 5, 0)
-    ctx.lineTo(phX + 5, 0)
-    ctx.lineTo(phX, 6)
-    ctx.closePath()
-    ctx.fill()
-  }, [lines, currentTime, selectedId, duration, peaks])
+      // Playhead triangle
+      ctx.fillStyle = `hsl(${v("--playhead")})`
+      ctx.beginPath()
+      ctx.moveTo(phX - 5, 0)
+      ctx.lineTo(phX + 5, 0)
+      ctx.lineTo(phX, 6)
+      ctx.closePath()
+      ctx.fill()
+    }
+  }, [lines, currentTime, selectedId, duration, peaks, viewStart, visibleDuration, timeToX])
 
   useEffect(() => {
     draw()
@@ -157,27 +207,92 @@ export function Waveform({
     return () => observer.disconnect()
   }, [draw])
 
-  function handleClick(e: React.MouseEvent<HTMLCanvasElement>) {
+  // Wheel zoom
+  useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const t = (x / rect.width) * Math.max(duration, 1)
 
-    // Check if clicked on a subtitle block
-    const clicked = lines.find((l) => t >= l.start_time && t <= l.end_time)
-    if (clicked) {
-      onSelect(clicked.id)
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = canvas.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseTime = viewStart + (mouseX / rect.width) * visibleDuration
+
+      if (e.deltaY < 0) {
+        onZoomIn()
+        // After zoom in, center on mouse position
+        const newVisibleDuration = visibleDuration / 2
+        const newStart = Math.max(0, Math.min(mouseTime - (mouseX / rect.width) * newVisibleDuration, Math.max(duration, 1) - newVisibleDuration))
+        onViewStartChange(newStart)
+      } else {
+        onZoomOut()
+        // After zoom out, center on mouse position
+        const newVisibleDuration = Math.min(visibleDuration * 2, Math.max(duration, 1))
+        const newStart = Math.max(0, Math.min(mouseTime - (mouseX / rect.width) * newVisibleDuration, Math.max(duration, 1) - newVisibleDuration))
+        onViewStartChange(newStart)
+      }
     }
-    onSeek(Math.max(0, Math.min(t, duration)))
+
+    canvas.addEventListener("wheel", handleWheel, { passive: false })
+    return () => canvas.removeEventListener("wheel", handleWheel)
+  }, [viewStart, visibleDuration, duration, onZoomIn, onZoomOut, onViewStartChange])
+
+  // Drag pan
+  function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+    dragRef.current = { startX: e.clientX, startViewStart: viewStart, moved: false }
   }
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragRef.current) return
+      const dx = e.clientX - dragRef.current.startX
+      if (Math.abs(dx) > 3) dragRef.current.moved = true
+      if (!dragRef.current.moved) return
+
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const rect = canvas.getBoundingClientRect()
+      const timeDelta = -(dx / rect.width) * visibleDuration
+      const newStart = Math.max(0, Math.min(dragRef.current.startViewStart + timeDelta, Math.max(duration, 1) - visibleDuration))
+      onViewStartChange(newStart)
+    }
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!dragRef.current) return
+      const wasDrag = dragRef.current.moved
+      dragRef.current = null
+
+      // If not a drag, treat as click (seek / select)
+      if (!wasDrag) {
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const rect = canvas.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const t = xToTime(x, rect.width)
+
+        // Check if clicked on a subtitle block
+        const clicked = lines.find((l) => t >= l.start_time && t <= l.end_time)
+        if (clicked) {
+          onSelect(clicked.id)
+        }
+        onSeek(Math.max(0, Math.min(t, duration)))
+      }
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [visibleDuration, duration, onViewStartChange, lines, onSelect, onSeek, xToTime])
 
   return (
     <div ref={containerRef} className="relative w-full h-full min-h-[80px]">
       <canvas
         ref={canvasRef}
         className="w-full h-full cursor-crosshair"
-        onClick={handleClick}
+        onMouseDown={handleMouseDown}
       />
     </div>
   )
