@@ -183,6 +183,7 @@ export interface Preset {
   translation_style: string;
   llm_model: string;
   vocabulary_id: string | null;
+  is_default?: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -7,6 +7,8 @@ import {
   cancelDownload as apiCancelDownload,
   deleteModel as apiDeleteModel,
 } from "../lib/tauriApi";
+import { toastError } from "../lib/toast";
+import i18n from "../i18n";
 import type {
   ModelCatalog,
   ModelManifestEntry,
@@ -30,6 +32,7 @@ export function useModels() {
       setCatalog(cat);
     } catch (e) {
       console.error("Failed to load model catalog:", e);
+      toastError(i18n.t("toast.modelLoadFailed"));
       setError(String(e));
     } finally {
       setLoading(false);
@@ -42,6 +45,7 @@ export function useModels() {
       setManifest(m.models);
     } catch (e) {
       console.error("Failed to load model manifest:", e);
+      toastError(i18n.t("toast.modelLoadFailed"));
     }
   }, []);
 
@@ -52,6 +56,7 @@ export function useModels() {
         await apiDownloadModel(modelId);
       } catch (e) {
         console.error("Failed to start download:", e);
+        toastError(i18n.t("toast.modelDownloadFailed"));
         setError(String(e));
       }
     },
@@ -68,6 +73,7 @@ export function useModels() {
       });
     } catch (e) {
       console.error("Failed to cancel download:", e);
+      toastError(i18n.t("toast.modelCancelFailed"));
     }
   }, []);
 
@@ -76,6 +82,7 @@ export function useModels() {
       await apiDeleteModel(modelId);
     } catch (e) {
       console.error("Failed to delete model:", e);
+      toastError(i18n.t("toast.modelDeleteFailed"));
       setError(String(e));
     }
   }, []);

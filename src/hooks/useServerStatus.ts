@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { ServerStatus } from "../types";
 import { getServerStatus, startServer, stopServer } from "../lib/tauriApi";
+import { toastError } from "../lib/toast";
+import i18n from "../i18n";
 
 export function useServerStatus() {
   const [status, setStatus] = useState<ServerStatus>("STOPPED");
@@ -9,7 +11,10 @@ export function useServerStatus() {
 
   useEffect(() => {
     // Get initial status
-    getServerStatus().then(setStatus).catch(console.error);
+    getServerStatus().then(setStatus).catch((e) => {
+      console.error("Failed to get server status:", e);
+      toastError(i18n.t("toast.serverConnectFailed"));
+    });
 
     // Listen for status changes
     const unlisten = listen<ServerStatus>("server-status", (event) => {
@@ -19,8 +24,16 @@ export function useServerStatus() {
       }
     });
 
+    // Listen for server crash
+    const unlistenCrash = listen("server-crashed", () => {
+      setStatus("ERROR");
+      setError("Server crashed");
+      toastError(i18n.t("toast.serverCrashed"));
+    });
+
     return () => {
       unlisten.then((fn) => fn());
+      unlistenCrash.then((fn) => fn());
     };
   }, []);
 

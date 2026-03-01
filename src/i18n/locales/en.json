@@ -33,7 +33,15 @@
       "description": "Create a new job to start processing subtitles."
     },
     "actions": {
-      "remove": "Remove"
+      "remove": "Remove",
+      "retry": "Retry"
+    },
+    "search": "Search files...",
+    "sort": {
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "nameAsc": "Name A-Z",
+      "nameDesc": "Name Z-A"
     },
     "newJob": {
       "button": "New Job",
@@ -78,7 +86,14 @@
       "chars": "Characters",
       "duration": "Duration",
       "cps": "Chars/sec"
-    }
+    },
+    "undo": "Undo",
+    "redo": "Redo",
+    "delete": "Delete",
+    "deleteTooltip": "Delete this subtitle",
+    "startTime": "Start",
+    "endTime": "End",
+    "playbackSpeed": "Speed"
   },
   "presets": {
     "description": "Translation presets & vocabularies",
@@ -98,7 +113,25 @@
     "emptyVocab": {
       "title": "No vocabularies yet",
       "description": "Create a vocabulary dictionary to ensure consistent translations."
-    }
+    },
+    "actions": {
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "setDefault": "Set as default"
+    },
+    "lang": {
+      "ko": "Korean",
+      "en": "English",
+      "ja": "Japanese",
+      "zh": "Chinese"
+    },
+    "style": {
+      "formal": "Formal",
+      "casual": "Casual",
+      "honorific": "Honorific"
+    },
+    "default": "Default"
   },
   "server": {
     "title": "Python Server",
@@ -250,6 +283,52 @@
       "statusError": "Error"
     }
   },
+  "toast": {
+    "configLoadFailed": "Failed to load settings",
+    "configSaveFailed": "Failed to save settings",
+    "presetLoadFailed": "Failed to load presets",
+    "presetSaveFailed": "Failed to save preset",
+    "presetDeleteFailed": "Failed to delete preset",
+    "presetDuplicated": "Preset duplicated",
+    "vocabLoadFailed": "Failed to load vocabularies",
+    "vocabSaveFailed": "Failed to save vocabulary",
+    "vocabDeleteFailed": "Failed to delete vocabulary",
+    "modelLoadFailed": "Failed to load models",
+    "modelDownloadFailed": "Failed to start download",
+    "modelCancelFailed": "Failed to cancel download",
+    "modelDeleteFailed": "Failed to delete model",
+    "pipelineFailed": "Job failed",
+    "pipelineCancelFailed": "Failed to cancel job",
+    "setupCheckFailed": "Failed to check setup",
+    "setupFailed": "Setup failed",
+    "setupResetFailed": "Failed to reset setup",
+    "serverConnectFailed": "Server connection failed",
+    "serverCrashed": "Server connection lost",
+    "jobsLoadFailed": "Failed to load job list",
+    "jobsSaveFailed": "Failed to save job list",
+    "subtitleLoadFailed": "Failed to load subtitles",
+    "subtitleSaveFailed": "Failed to save subtitles",
+    "subtitleSaved": "Subtitles saved",
+    "exportFailed": "Failed to export subtitles",
+    "exportSuccess": "Subtitles exported",
+    "jobStillProcessing": "Job is still processing",
+    "jobFailedClick": "Job failed",
+    "configResetSuccess": "Settings restored to defaults",
+    "configResetFailed": "Failed to restore defaults"
+  },
+  "confirm": {
+    "deletePreset": "Delete Preset",
+    "deletePresetMsg": "Are you sure you want to delete this preset? This action cannot be undone.",
+    "deleteVocab": "Delete Vocabulary",
+    "deleteVocabMsg": "Are you sure you want to delete this vocabulary? This action cannot be undone.",
+    "resetConfig": "Restore Defaults",
+    "resetConfigMsg": "Are you sure you want to restore all settings to defaults? This action cannot be undone."
+  },
+  "configError": {
+    "title": "Failed to load settings",
+    "description": "An error occurred while loading application settings.",
+    "retry": "Retry"
+  },
   "settings": {
     "title": "Settings",
     "description": "Application settings",
@@ -267,7 +346,26 @@
       "description": "Language, output format, and translation preferences.",
       "outputFormat": "Default Output Format",
       "sourceLanguage": "Source Language",
-      "targetLanguage": "Target Language"
+      "targetLanguage": "Target Language",
+      "sourceLangs": {
+        "auto": "Auto Detect",
+        "en": "English",
+        "ko": "Korean",
+        "ja": "Japanese",
+        "zh": "Chinese",
+        "es": "Spanish",
+        "fr": "French",
+        "de": "German"
+      },
+      "targetLangs": {
+        "en": "English",
+        "ko": "Korean",
+        "ja": "Japanese",
+        "zh": "Chinese",
+        "es": "Spanish",
+        "fr": "French",
+        "de": "German"
+      }
     },
     "paths": {
       "title": "File Paths",
@@ -369,6 +467,17 @@
       "title": "UI Language",
       "en": "English",
       "ko": "Korean"
-    }
+    },
+    "restoreDefaults": "Restore Defaults",
+    "memoryWarning": "Using more than 80% of available RAM may cause instability."
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "hw": {
+    "cuda": "CUDA {{version}}",
+    "cpuOnly": "CPU Only"
   }
 }

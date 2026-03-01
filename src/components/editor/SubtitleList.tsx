@@ -1,12 +1,13 @@
 import { useRef, useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { Scissors, Merge } from "lucide-react"
+import { Scissors, Merge, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuShortcut,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
@@ -19,6 +20,7 @@ interface SubtitleListProps {
   onSelect: (id: string) => void
   onSplit: (id: string) => void
   onMergeWithNext: (id: string) => void
+  onDelete?: (id: string) => void
 }
 
 function formatTimestamp(seconds: number): string {
@@ -35,7 +37,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   editing: "secondary",
 }
 
-export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit, onMergeWithNext }: SubtitleListProps) {
+export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit, onMergeWithNext, onDelete }: SubtitleListProps) {
   const { t } = useTranslation()
   const selectedRef = useRef<HTMLDivElement>(null)
 
@@ -124,6 +126,19 @@ export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit
                   {t("editor.actions.mergeNext")}
                   <ContextMenuShortcut>Ctrl+Shift+M</ContextMenuShortcut>
                 </ContextMenuItem>
+                {onDelete && (
+                  <>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      onClick={() => onDelete(line.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {t("editor.delete")}
+                      <ContextMenuShortcut>Del</ContextMenuShortcut>
+                    </ContextMenuItem>
+                  </>
+                )}
               </ContextMenuContent>
             </ContextMenu>
           )

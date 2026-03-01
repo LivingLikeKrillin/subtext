@@ -289,6 +289,8 @@ pub struct Preset {
     pub translation_style: String,
     pub llm_model: String,
     pub vocabulary_id: Option<String>,
+    #[serde(default)]
+    pub is_default: Option<bool>,
     pub created_at: String,
     pub updated_at: String,
 }

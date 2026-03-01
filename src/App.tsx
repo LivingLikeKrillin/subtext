@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { toastError } from "./lib/toast";
 import { useServerStatus } from "./hooks/useServerStatus";
 import { useJobs } from "./hooks/useJobs";
 import { useSetup } from "./hooks/useSetup";
@@ -21,6 +23,7 @@ import { EditorPage } from "./components/editor/EditorPage";
 import { PresetsPage } from "./components/presets/PresetsPage";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { Toaster } from "./components/ui/sonner";
+import { Button } from "./components/ui/button";
 import type { AppScreen, MainPage, DashboardJob } from "./types";
 import { loadDashboardJobs, saveDashboardJobs } from "./lib/tauriApi";
 
@@ -44,7 +47,7 @@ const PAGE_TITLES = {
 
 function App() {
   const { t } = useTranslation();
-  const { config, loading: configLoading, update: updateConfig, reload: reloadConfig } = useConfig();
+  const { config, loading: configLoading, error: configError, update: updateConfig, reload: reloadConfig } = useConfig();
   const { status: setupStatus, progress, error: setupError, startSetup, retry } = useSetup();
   useServerStatus(); // keep active for pipeline
   useJobs(); // keep listener active
@@ -90,6 +93,7 @@ function App() {
         })
         .catch((e) => {
           console.error("Failed to load dashboard jobs:", e);
+          toastError(t("toast.jobsLoadFailed"));
           setJobsLoaded(true);
         });
     }
@@ -98,9 +102,10 @@ function App() {
   // Persist jobs to disk whenever they change (after initial load)
   useEffect(() => {
     if (!jobsLoaded) return;
-    saveDashboardJobs(dashboardJobs).catch((e) =>
-      console.error("Failed to save dashboard jobs:", e),
-    );
+    saveDashboardJobs(dashboardJobs).catch((e) => {
+      console.error("Failed to save dashboard jobs:", e);
+      toastError(t("toast.jobsSaveFailed"));
+    });
   }, [dashboardJobs, jobsLoaded]);
 
   const handleWizardComplete = useCallback(() => {
@@ -135,6 +140,48 @@ function App() {
   const handleRemoveJob = useCallback((id: string) => {
     setDashboardJobs((prev) => prev.filter((j) => j.id !== id));
   }, []);
+
+  const handleRetryJob = useCallback(
+    (jobId: string) => {
+      const job = dashboardJobs.find((j) => j.id === jobId);
+      if (!job) return;
+      setDashboardJobs((prev) =>
+        prev.map((j) =>
+          j.id === jobId
+            ? { ...j, status: "processing" as const, stage: "stt" as const, progress: 0, error: undefined }
+            : j,
+        ),
+      );
+      const sourceLanguage = config?.source_language;
+      processJob(job.id, job.file_path, sourceLanguage === "auto" ? undefined : sourceLanguage);
+    },
+    [dashboardJobs, processJob, config?.source_language],
+  );
+
+  // ── Config error screen ──
+  if (configError && !configLoading && !config) {
+    return (
+      <ThemeProvider defaultTheme="dark">
+        <div className="flex h-full items-center justify-center">
+          <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+            <div className="rounded-2xl bg-destructive/10 p-4 ring-1 ring-destructive/30">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <div>
+              <p className="font-semibold text-lg">{t("configError.title")}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t("configError.description")}</p>
+              <p className="text-xs text-destructive mt-2 font-mono break-all">{configError}</p>
+            </div>
+            <Button onClick={reloadConfig} variant="outline" size="sm">
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+              {t("configError.retry")}
+            </Button>
+          </div>
+        </div>
+        <Toaster />
+      </ThemeProvider>
+    );
+  }
 
   // ── BOOT: Loading spinner ──
   if (screen === "BOOT") {
@@ -202,6 +249,7 @@ function App() {
                 vocabularies={vocabulariesHook.vocabularies}
                 onNewJob={handleNewJob}
                 onRemoveJob={handleRemoveJob}
+                onRetryJob={handleRetryJob}
                 onOpenEditor={(jobId, filePath) => {
                   setEditorJobId(jobId);
                   setEditorFilePath(filePath);

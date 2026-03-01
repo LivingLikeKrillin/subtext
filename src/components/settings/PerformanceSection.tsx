@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next"
-import { Cpu, Zap, MemoryStick } from "lucide-react"
+import { Cpu, Zap, MemoryStick, AlertTriangle } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
+import { useHardware } from "@/hooks/useHardware"
 import type { AppConfig, PartialConfig, Profile } from "@/types"
 
 interface PerformanceSectionProps {
@@ -20,10 +21,18 @@ const PROFILES: { value: Profile; icon: typeof Cpu; titleKey: string; descKey: s
 
 export function PerformanceSection({ config, onUpdate }: PerformanceSectionProps) {
   const { t } = useTranslation()
+  const { hardware } = useHardware()
 
   const gpuEnabled = config.gpu_acceleration ?? true
   const concurrentJobs = config.max_concurrent_jobs ?? 1
   const maxMemory = config.max_memory_mb ?? 0
+
+  // Calculate RAM-based upper limit
+  const totalRamMb = hardware ? Math.round(hardware.total_ram_gb * 1024) : 32768
+  // Round to nearest 1024 MB
+  const maxSliderValue = Math.floor(totalRamMb / 1024) * 1024
+  const warningThreshold = Math.round(totalRamMb * 0.8)
+  const showWarning = maxMemory > 0 && maxMemory > warningThreshold
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,10 +115,16 @@ export function PerformanceSection({ config, onUpdate }: PerformanceSectionProps
           value={[maxMemory]}
           onValueChange={([v]) => onUpdate({ max_memory_mb: v === 0 ? null : v })}
           min={0}
-          max={32768}
+          max={maxSliderValue}
           step={1024}
         />
         <p className="text-xs text-muted-foreground">{t("settings.performance.maxMemoryDesc")}</p>
+        {showWarning && (
+          <div className="flex items-center gap-2 rounded-md bg-yellow-500/10 px-3 py-2 text-xs text-yellow-600 dark:text-yellow-400">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>{t("settings.memoryWarning")}</span>
+          </div>
+        )}
       </div>
     </div>
   )

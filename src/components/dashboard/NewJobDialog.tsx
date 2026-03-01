@@ -38,7 +38,10 @@ function formatSize(bytes: number) {
 export function NewJobDialog({ open, onOpenChange, presets, vocabularies, onSubmit }: NewJobDialogProps) {
   const { t } = useTranslation()
   const [files, setFiles] = useState<SelectedFile[]>([])
-  const [selectedPreset, setSelectedPreset] = useState(presets[0]?.id ?? "")
+  const [selectedPreset, setSelectedPreset] = useState(() => {
+    const defaultPreset = presets.find((p) => p.is_default)
+    return defaultPreset?.id ?? presets[0]?.id ?? ""
+  })
   const [isDragging, setIsDragging] = useState(false)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {

@@ -20,8 +20,8 @@ interface GeneralSectionProps {
 }
 
 const LANGUAGES = [
-  { value: "en", label: "English" },
-  { value: "ko", label: "한국어" },
+  { value: "en", labelKey: "settings.language.en" },
+  { value: "ko", labelKey: "settings.language.ko" },
 ]
 
 const FORMATS = [
@@ -31,26 +31,8 @@ const FORMATS = [
   { value: "txt", label: "TXT" },
 ]
 
-const SOURCE_LANGS = [
-  { value: "auto", label: "Auto Detect" },
-  { value: "en", label: "English" },
-  { value: "ko", label: "Korean" },
-  { value: "ja", label: "Japanese" },
-  { value: "zh", label: "Chinese" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-]
-
-const TARGET_LANGS = [
-  { value: "en", label: "English" },
-  { value: "ko", label: "Korean" },
-  { value: "ja", label: "Japanese" },
-  { value: "zh", label: "Chinese" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-]
+const SOURCE_LANG_KEYS = ["auto", "en", "ko", "ja", "zh", "es", "fr", "de"]
+const TARGET_LANG_KEYS = ["en", "ko", "ja", "zh", "es", "fr", "de"]
 
 const TRANSLATION_MODES = [
   { value: "off", labelKey: "settings.translation.modeOff" as const },
@@ -92,7 +74,7 @@ export function GeneralSection({ config, onUpdate }: GeneralSectionProps) {
           {LANGUAGES.map((lang) => (
             <div key={lang.value} className="flex items-center gap-2">
               <RadioGroupItem value={lang.value} id={`lang-${lang.value}`} />
-              <Label htmlFor={`lang-${lang.value}`} className="font-normal cursor-pointer">{lang.label}</Label>
+              <Label htmlFor={`lang-${lang.value}`} className="font-normal cursor-pointer">{t(lang.labelKey as never)}</Label>
             </div>
           ))}
         </RadioGroup>
@@ -118,7 +100,7 @@ export function GeneralSection({ config, onUpdate }: GeneralSectionProps) {
           <Select value={config.source_language} onValueChange={(v) => onUpdate({ source_language: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {SOURCE_LANGS.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+              {SOURCE_LANG_KEYS.map((k) => <SelectItem key={k} value={k}>{t(`settings.general.sourceLangs.${k}` as never)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -127,7 +109,7 @@ export function GeneralSection({ config, onUpdate }: GeneralSectionProps) {
           <Select value={config.target_language} onValueChange={(v) => onUpdate({ target_language: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {TARGET_LANGS.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+              {TARGET_LANG_KEYS.map((k) => <SelectItem key={k} value={k}>{t(`settings.general.targetLangs.${k}` as never)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

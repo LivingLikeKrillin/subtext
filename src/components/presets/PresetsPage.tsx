@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ArrowRight,
   MoreHorizontal,
+  Star,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,16 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -48,26 +59,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { Preset, Vocabulary, VocabularyEntry, Language } from "@/types"
+import type { Preset, Vocabulary, VocabularyEntry } from "@/types"
 
-const LANG_LABELS: Record<Language, string> = { ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese" }
-const STYLE_LABELS: Record<string, string> = { formal: "Formal", casual: "Casual", honorific: "Honorific" }
+const LANG_KEYS = ["ko", "en", "ja", "zh"] as const
+const STYLE_KEYS = ["formal", "casual", "honorific"] as const
 
 // ─── Preset Card ─────────────────────────────────────────────────
 
 function PresetCard({
   preset,
   vocabName,
+  isDefault,
   onEdit,
   onDuplicate,
   onDelete,
+  onSetDefault,
 }: {
   preset: Preset
   vocabName: string | null
+  isDefault?: boolean
   onEdit: () => void
   onDuplicate: () => void
   onDelete: () => void
+  onSetDefault?: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="group rounded-lg border p-4 transition-colors hover:bg-muted/30">
       <div className="flex items-start justify-between gap-3">
@@ -77,6 +93,12 @@ function PresetCard({
             <Badge variant="outline" className="text-[10px] shrink-0">
               {preset.output_format.toUpperCase()}
             </Badge>
+            {isDefault && (
+              <Badge variant="secondary" className="text-[10px] shrink-0">
+                <Star className="mr-0.5 h-2.5 w-2.5" />
+                {t("presets.default")}
+              </Badge>
+            )}
           </div>
           {preset.description && (
             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{preset.description}</p>
@@ -90,14 +112,19 @@ function PresetCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onEdit}>
-              <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+              <Pencil className="mr-2 h-3.5 w-3.5" /> {t("presets.actions.edit")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onDuplicate}>
-              <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
+              <Copy className="mr-2 h-3.5 w-3.5" /> {t("presets.actions.duplicate")}
             </DropdownMenuItem>
+            {onSetDefault && !isDefault && (
+              <DropdownMenuItem onClick={onSetDefault}>
+                <Star className="mr-2 h-3.5 w-3.5" /> {t("presets.actions.setDefault")}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+              <Trash2 className="mr-2 h-3.5 w-3.5" /> {t("presets.actions.delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -107,11 +134,11 @@ function PresetCard({
         <span>STT: <span className="text-foreground font-medium">{preset.whisper_model}</span></span>
         <span>LLM: <span className="text-foreground font-medium">{preset.llm_model}</span></span>
         <span className="flex items-center gap-1">
-          {LANG_LABELS[preset.source_lang as Language] ?? preset.source_lang}
+          {t(`presets.lang.${preset.source_lang}`, preset.source_lang)}
           <ArrowRight className="h-3 w-3" />
-          {LANG_LABELS[preset.target_lang as Language] ?? preset.target_lang}
+          {t(`presets.lang.${preset.target_lang}`, preset.target_lang)}
         </span>
-        <span>Style: <span className="text-foreground font-medium">{STYLE_LABELS[preset.translation_style] ?? preset.translation_style}</span></span>
+        <span>Style: <span className="text-foreground font-medium">{t(`presets.style.${preset.translation_style}`, preset.translation_style)}</span></span>
         {vocabName && (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5">
             <BookOpen className="h-3 w-3 text-primary" />
@@ -126,6 +153,7 @@ function PresetCard({
 // ─── Vocabulary Card ─────────────────────────────────────────────
 
 function VocabCard({ vocab, onEdit, onDelete }: { vocab: Vocabulary; onEdit: () => void; onDelete: () => void }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -147,7 +175,7 @@ function VocabCard({ vocab, onEdit, onDelete }: { vocab: Vocabulary; onEdit: () 
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs text-muted-foreground">
-            {LANG_LABELS[vocab.source_lang as Language] ?? vocab.source_lang} &rarr; {LANG_LABELS[vocab.target_lang as Language] ?? vocab.target_lang}
+            {t(`presets.lang.${vocab.source_lang}`, vocab.source_lang)} &rarr; {t(`presets.lang.${vocab.target_lang}`, vocab.target_lang)}
           </span>
           <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
         </div>
@@ -176,9 +204,9 @@ function VocabCard({ vocab, onEdit, onDelete }: { vocab: Vocabulary; onEdit: () 
             </TableBody>
           </Table>
           <div className="flex items-center justify-end gap-2 p-3 border-t">
-            <Button variant="outline" size="sm" onClick={onEdit}><Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit</Button>
+            <Button variant="outline" size="sm" onClick={onEdit}><Pencil className="mr-1.5 h-3.5 w-3.5" /> {t("presets.actions.edit")}</Button>
             <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive hover:text-destructive">
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> {t("presets.actions.delete")}
             </Button>
           </div>
         </div>
@@ -198,6 +226,7 @@ function PresetDialog({
   vocabularies: Vocabulary[]
   onSave: (data: Omit<Preset, "id" | "created_at" | "updated_at">) => void
 }) {
+  const { t } = useTranslation()
   const [name, setName] = useState(initial?.name ?? "")
   const [description, setDescription] = useState(initial?.description ?? "")
   const [whisperModel, setWhisperModel] = useState(initial?.whisper_model ?? "large-v3")
@@ -273,8 +302,8 @@ function PresetDialog({
                 <Select value={sourceLang} onValueChange={setSourceLang}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(LANG_LABELS) as [string, string][]).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    {LANG_KEYS.map((k) => (
+                      <SelectItem key={k} value={k}>{t(`presets.lang.${k}`, k)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -284,8 +313,8 @@ function PresetDialog({
                 <Select value={targetLang} onValueChange={setTargetLang}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(LANG_LABELS) as [string, string][]).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    {LANG_KEYS.map((k) => (
+                      <SelectItem key={k} value={k}>{t(`presets.lang.${k}`, k)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -309,8 +338,8 @@ function PresetDialog({
                 <Select value={translationStyle} onValueChange={setTranslationStyle}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(STYLE_LABELS) as [string, string][]).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    {STYLE_KEYS.map((k) => (
+                      <SelectItem key={k} value={k}>{t(`presets.style.${k}`, k)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -353,6 +382,7 @@ function VocabDialog({
   initial?: Vocabulary
   onSave: (data: Omit<Vocabulary, "id" | "created_at" | "updated_at">) => void
 }) {
+  const { t } = useTranslation()
   const [name, setName] = useState(initial?.name ?? "")
   const [description, setDescription] = useState(initial?.description ?? "")
   const [sourceLang, setSourceLang] = useState(initial?.source_lang ?? "ko")
@@ -412,8 +442,8 @@ function VocabDialog({
                 <Select value={sourceLang} onValueChange={setSourceLang}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(LANG_LABELS) as [string, string][]).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    {LANG_KEYS.map((k) => (
+                      <SelectItem key={k} value={k}>{t(`presets.lang.${k}`, k)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -423,8 +453,8 @@ function VocabDialog({
                 <Select value={targetLang} onValueChange={setTargetLang}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(LANG_LABELS) as [string, string][]).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    {LANG_KEYS.map((k) => (
+                      <SelectItem key={k} value={k}>{t(`presets.lang.${k}`, k)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -510,13 +540,27 @@ export function PresetsPage({
   const [editingPreset, setEditingPreset] = useState<Preset | undefined>()
   const [vocabDialogOpen, setVocabDialogOpen] = useState(false)
   const [editingVocab, setEditingVocab] = useState<Vocabulary | undefined>()
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "preset" | "vocab"; id: string; name: string } | null>(null)
 
   function openNewPreset() { setEditingPreset(undefined); setPresetDialogOpen(true) }
   function openEditPreset(p: Preset) { setEditingPreset(p); setPresetDialogOpen(true) }
 
   function handleDuplicatePreset(p: Preset) {
     const now = new Date().toISOString()
-    onAddPreset({ ...p, id: crypto.randomUUID(), name: `${p.name} (Copy)`, created_at: now, updated_at: now })
+    onAddPreset({ ...p, id: crypto.randomUUID(), name: `${p.name} (Copy)`, is_default: false, created_at: now, updated_at: now })
+  }
+
+  function handleSetDefault(presetId: string) {
+    const now = new Date().toISOString()
+    for (const p of presets) {
+      if (p.is_default && p.id !== presetId) {
+        onUpdatePreset({ ...p, is_default: false, updated_at: now })
+      }
+    }
+    const target = presets.find((p) => p.id === presetId)
+    if (target) {
+      onUpdatePreset({ ...target, is_default: true, updated_at: now })
+    }
   }
 
   function handleSavePreset(data: Omit<Preset, "id" | "created_at" | "updated_at">) {
@@ -575,9 +619,11 @@ export function PresetsPage({
               <PresetCard
                 key={p.id} preset={p}
                 vocabName={getVocabName(p.vocabulary_id)}
+                isDefault={!!p.is_default}
                 onEdit={() => openEditPreset(p)}
                 onDuplicate={() => handleDuplicatePreset(p)}
-                onDelete={() => onRemovePreset(p.id)}
+                onDelete={() => setDeleteTarget({ type: "preset", id: p.id, name: p.name })}
+                onSetDefault={() => handleSetDefault(p.id)}
               />
             ))}
             {presets.length === 0 && (
@@ -600,7 +646,7 @@ export function PresetsPage({
           </div>
           <div className="flex flex-col gap-2">
             {vocabularies.map((v) => (
-              <VocabCard key={v.id} vocab={v} onEdit={() => openEditVocab(v)} onDelete={() => onRemoveVocabulary(v.id)} />
+              <VocabCard key={v.id} vocab={v} onEdit={() => openEditVocab(v)} onDelete={() => setDeleteTarget({ type: "vocab", id: v.id, name: v.name })} />
             ))}
             {vocabularies.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -616,6 +662,36 @@ export function PresetsPage({
 
       <PresetDialog open={presetDialogOpen} onOpenChange={setPresetDialogOpen} initial={editingPreset} vocabularies={vocabularies} onSave={handleSavePreset} />
       <VocabDialog open={vocabDialogOpen} onOpenChange={setVocabDialogOpen} initial={editingVocab} onSave={handleSaveVocab} />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteTarget?.type === "preset" ? t("confirm.deletePreset") : t("confirm.deleteVocab")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.type === "preset" ? t("confirm.deletePresetMsg") : t("confirm.deleteVocabMsg")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("shared.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!deleteTarget) return
+                if (deleteTarget.type === "preset") {
+                  onRemovePreset(deleteTarget.id)
+                } else {
+                  onRemoveVocabulary(deleteTarget.id)
+                }
+                setDeleteTarget(null)
+              }}
+            >
+              {t("presets.actions.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

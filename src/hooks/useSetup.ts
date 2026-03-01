@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { checkSetup, runSetup, resetSetup } from "../lib/tauriApi";
+import { toastError } from "../lib/toast";
+import i18n from "../i18n";
 import type { SetupStatus, SetupProgress } from "../types";
 
 export function useSetup() {
@@ -13,6 +15,7 @@ export function useSetup() {
       .then((s) => setStatus(s))
       .catch((e) => {
         console.error("Failed to check setup:", e);
+        toastError(i18n.t("toast.setupCheckFailed"));
         setStatus("NEEDED");
       });
   }, []);
@@ -35,6 +38,7 @@ export function useSetup() {
       setStatus("COMPLETE");
     } catch (e) {
       console.error("Setup failed:", e);
+      toastError(i18n.t("toast.setupFailed"), String(e));
       setError(String(e));
       setStatus("ERROR");
     }
@@ -53,6 +57,7 @@ export function useSetup() {
       setError(null);
     } catch (e) {
       console.error("Failed to reset setup:", e);
+      toastError(i18n.t("toast.setupResetFailed"));
     }
   }, []);
 

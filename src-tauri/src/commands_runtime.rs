@@ -170,7 +170,11 @@ pub fn start_resource_polling(app: AppHandle, port: u16) -> CancellationToken {
     let cancel = token.clone();
 
     tokio::spawn(async move {
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(3))
+            .build()
+            .unwrap_or_default();
+        let mut consecutive_failures: u32 = 0;
 
         loop {
             tokio::select! {
@@ -181,40 +185,72 @@ pub fn start_resource_polling(app: AppHandle, port: u16) -> CancellationToken {
                 _ = tokio::time::sleep(std::time::Duration::from_secs(3)) => {}
             }
 
-            // Fetch resources
-            if let Ok(resp) = client
+            // Health check via /runtime/resources (any successful response)
+            let health_ok = match client
                 .get(format!("http://127.0.0.1:{}/runtime/resources", port))
                 .send()
                 .await
             {
-                if let Ok(body) = resp.json::<PythonResourceResponse>().await {
-                    let usage = ResourceUsage {
-                        ram_used_mb: body.ram_used_mb,
-                        ram_total_mb: body.ram_total_mb,
-                        vram_used_mb: body.vram_used_mb,
-                        vram_total_mb: body.vram_total_mb,
-                    };
-                    let _ = app.emit("resource-usage", &usage);
+                Ok(resp) => {
+                    if let Ok(body) = resp.json::<PythonResourceResponse>().await {
+                        let usage = ResourceUsage {
+                            ram_used_mb: body.ram_used_mb,
+                            ram_total_mb: body.ram_total_mb,
+                            vram_used_mb: body.vram_used_mb,
+                            vram_total_mb: body.vram_total_mb,
+                        };
+                        let _ = app.emit("resource-usage", &usage);
+                        true
+                    } else {
+                        false
+                    }
                 }
+                Err(_) => false,
+            };
+
+            if health_ok {
+                consecutive_failures = 0;
+            } else {
+                consecutive_failures += 1;
+                log::warn!(
+                    "Health check failed ({}/3 consecutive failures)",
+                    consecutive_failures
+                );
             }
 
-            // Fetch runtime status
-            if let Ok(resp) = client
-                .get(format!("http://127.0.0.1:{}/runtime/status", port))
-                .send()
-                .await
-            {
-                if let Ok(body) = resp.json::<PythonModelStatus>().await {
-                    let status = RuntimeStatus {
-                        whisper: parse_model_status(&body.whisper_status),
-                        llm: parse_model_status(&body.llm_status),
-                    };
+            // 3 consecutive failures → server crashed
+            if consecutive_failures >= 3 {
+                log::error!("Server health check failed 3 times consecutively, emitting server-crashed");
+                let state = app.state::<SharedState>();
+                if let Ok(mut s) = state.lock() {
+                    s.server_status = crate::state::ServerStatus::ERROR;
+                    s.runtime_status = RuntimeStatus::default();
+                }
+                let _ = app.emit("server-status", "ERROR");
+                let _ = app.emit("server-crashed", ());
+                let _ = app.emit("runtime-status", &RuntimeStatus::default());
+                return; // Stop polling
+            }
 
-                    let state = app.state::<SharedState>();
-                    if let Ok(mut s) = state.lock() {
-                        s.runtime_status = status.clone();
+            // Fetch runtime status (only when healthy)
+            if health_ok {
+                if let Ok(resp) = client
+                    .get(format!("http://127.0.0.1:{}/runtime/status", port))
+                    .send()
+                    .await
+                {
+                    if let Ok(body) = resp.json::<PythonModelStatus>().await {
+                        let status = RuntimeStatus {
+                            whisper: parse_model_status(&body.whisper_status),
+                            llm: parse_model_status(&body.llm_status),
+                        };
+
+                        let state = app.state::<SharedState>();
+                        if let Ok(mut s) = state.lock() {
+                            s.runtime_status = status.clone();
+                        }
+                        let _ = app.emit("runtime-status", &status);
                     }
-                    let _ = app.emit("runtime-status", &status);
                 }
             }
         }

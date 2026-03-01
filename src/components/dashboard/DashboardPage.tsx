@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
-import { Plus, Trash2, FileVideo, Clock, Filter, MoreHorizontal } from "lucide-react"
+import { Plus, Trash2, FileVideo, Clock, Filter, MoreHorizontal, RotateCcw, Search, ArrowUpDown } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { toastInfo, toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import {
@@ -23,9 +24,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { JobStatusBadge } from "./JobStatusBadge"
 import { NewJobDialog, type SelectedFile } from "./NewJobDialog"
 import type { JobStatus, DashboardJob, Preset, Vocabulary } from "@/types"
+
+type SortOption = "newest" | "oldest" | "nameAsc" | "nameDesc"
 
 interface DashboardPageProps {
   jobs: DashboardJob[]
@@ -33,6 +47,7 @@ interface DashboardPageProps {
   vocabularies: Vocabulary[]
   onNewJob: (files: SelectedFile[], presetId: string) => void
   onRemoveJob: (id: string) => void
+  onRetryJob?: (jobId: string) => void
   onOpenEditor?: (jobId: string, filePath: string) => void
 }
 
@@ -52,7 +67,7 @@ function formatDuration(sec: number) {
   return `${m}m`
 }
 
-function formatDate(iso: string) {
+function formatDate(iso: string, locale: string) {
   const d = new Date(iso)
   const now = new Date()
   const diff = now.getTime() - d.getTime()
@@ -61,7 +76,8 @@ function formatDate(iso: string) {
   if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
-  return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
+  const dateLocale = locale === "ko" ? "ko-KR" : "en-US"
+  return d.toLocaleDateString(dateLocale, { month: "short", day: "numeric" })
 }
 
 export function DashboardPage({
@@ -70,16 +86,31 @@ export function DashboardPage({
   vocabularies,
   onNewJob,
   onRemoveJob,
+  onRetryJob,
   onOpenEditor,
 }: DashboardPageProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [newJobOpen, setNewJobOpen] = useState(false)
   const [filter, setFilter] = useState<FilterStatus>("all")
+  const [search, setSearch] = useState("")
+  const [sort, setSort] = useState<SortOption>("newest")
 
   const filteredJobs = useMemo(() => {
-    if (filter === "all") return jobs
-    return jobs.filter((j) => j.status === filter)
-  }, [jobs, filter])
+    let result = filter === "all" ? jobs : jobs.filter((j) => j.status === filter)
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      result = result.filter((j) => j.file_name.toLowerCase().includes(q))
+    }
+    result = [...result].sort((a, b) => {
+      switch (sort) {
+        case "oldest": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        case "nameAsc": return a.file_name.localeCompare(b.file_name)
+        case "nameDesc": return b.file_name.localeCompare(a.file_name)
+        default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+    })
+    return result
+  }, [jobs, filter, search, sort])
 
   const counts = useMemo(() => {
     const c = { all: jobs.length, pending: 0, processing: 0, completed: 0, failed: 0 }
@@ -118,6 +149,27 @@ export function DashboardPage({
           </Button>
         ))}
         <div className="flex-1" />
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("dashboard.search")}
+            className="h-7 w-40 pl-8 text-xs"
+          />
+        </div>
+        <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
+          <SelectTrigger className="h-7 w-36 text-xs">
+            <ArrowUpDown className="mr-1.5 h-3 w-3" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">{t("dashboard.sort.newest")}</SelectItem>
+            <SelectItem value="oldest">{t("dashboard.sort.oldest")}</SelectItem>
+            <SelectItem value="nameAsc">{t("dashboard.sort.nameAsc")}</SelectItem>
+            <SelectItem value="nameDesc">{t("dashboard.sort.nameDesc")}</SelectItem>
+          </SelectContent>
+        </Select>
         <Button size="sm" onClick={() => setNewJobOpen(true)}>
           <Plus className="mr-1.5 h-4 w-4" />
           {t("dashboard.newJob.button", "New Job")}
@@ -159,7 +211,15 @@ export function DashboardPage({
                 <TableRow
                   key={job.id}
                   className="group cursor-pointer"
-                  onClick={() => job.status === "completed" && onOpenEditor?.(job.id, job.file_path)}
+                  onClick={() => {
+                    if (job.status === "completed") {
+                      onOpenEditor?.(job.id, job.file_path)
+                    } else if (job.status === "processing" || job.status === "pending") {
+                      toastInfo(t("toast.jobStillProcessing"))
+                    } else if (job.status === "failed") {
+                      toastError(t("toast.jobFailedClick"), job.error)
+                    }
+                  }}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2.5">
@@ -210,7 +270,7 @@ export function DashboardPage({
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      {formatDate(job.created_at)}
+                      {formatDate(job.created_at, i18n.language)}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -227,6 +287,17 @@ export function DashboardPage({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {job.status === "failed" && onRetryJob && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={(e) => { e.stopPropagation(); onRetryJob(job.id) }}
+                            >
+                              <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                              {t("dashboard.actions.retry", "Retry")}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         <DropdownMenuItem
                           onClick={(e) => { e.stopPropagation(); onRemoveJob(job.id) }}
                           className="text-destructive focus:text-destructive"

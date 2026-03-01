@@ -1,15 +1,18 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { Save, Download, FileText } from "lucide-react"
+import { Save, Download, FileText, Undo2, Redo2 } from "lucide-react"
+import { toastSuccess, toastError } from "@/lib/toast"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Waveform } from "./Waveform"
 import { SubtitleList } from "./SubtitleList"
 import { EditPanel } from "./EditPanel"
 import { PlaybackControls } from "./PlaybackControls"
 import { loadJobSubtitles, saveJobSubtitles, exportSubtitles } from "@/lib/tauriApi"
 import { splitLine, mergeLines, reindex, getSplitTime, canSplit, canMerge } from "@/lib/subtitleOps"
+import { useHistory } from "@/hooks/useHistory"
 import type { SubtitleLine } from "@/types"
 
 interface EditorPageProps {
@@ -21,11 +24,12 @@ interface EditorPageProps {
 
 export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: EditorPageProps) {
   const { t } = useTranslation()
-  const [lines, setLines] = useState<SubtitleLine[]>([])
+  const { present: lines, push: pushLines, undo, redo, reset: resetLines, canUndo, canRedo } = useHistory<SubtitleLine[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1)
 
   // Audio state
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -37,7 +41,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
   // Load subtitles when jobId changes
   useEffect(() => {
     if (!jobId) {
-      setLines([])
+      resetLines([])
       setSelectedId(null)
       setCurrentTime(0)
       setDirty(false)
@@ -46,13 +50,16 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
 
     loadJobSubtitles(jobId)
       .then((data) => {
-        setLines(data)
+        resetLines(data)
         setSelectedId(null)
         setCurrentTime(0)
         setDirty(false)
       })
-      .catch((e) => console.error("Failed to load subtitles:", e))
-  }, [jobId])
+      .catch((e) => {
+        console.error("Failed to load subtitles:", e)
+        toastError(t("toast.subtitleLoadFailed"))
+      })
+  }, [jobId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Audio lifecycle: create HTMLAudioElement when filePath changes
   useEffect(() => {
@@ -73,6 +80,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
     const audio = new Audio()
     audioRef.current = audio
     audio.volume = volume
+    audio.playbackRate = playbackRate
 
     const onLoadedMetadata = () => {
       setAudioDuration(audio.duration)
@@ -165,6 +173,11 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
     if (audioRef.current) audioRef.current.volume = volume
   }, [volume])
 
+  // Sync playback rate to audio element
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = playbackRate
+  }, [playbackRate])
+
   const subtitleDuration = useMemo(() => {
     if (lines.length === 0) return 0
     return Math.max(...lines.map((l) => l.end_time))
@@ -181,34 +194,45 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
   useEffect(() => {
     if (audioReady) return // real audio handles timeupdate
     if (!isPlaying) return
+    const intervalMs = 100
     const interval = setInterval(() => {
       setCurrentTime((t) => {
         if (t >= duration) {
           setIsPlaying(false)
           return 0
         }
-        return t + 0.1
+        return t + (intervalMs / 1000) * playbackRate
       })
-    }, 100)
+    }, intervalMs)
     return () => clearInterval(interval)
-  }, [audioReady, isPlaying, duration])
+  }, [audioReady, isPlaying, duration, playbackRate])
+
+  // Auto-select subtitle during playback (Sprint 4)
+  useEffect(() => {
+    if (!isPlaying) return
+    const active = lines.find((l) => currentTime >= l.start_time && currentTime <= l.end_time)
+    if (active && active.id !== selectedId) {
+      setSelectedId(active.id)
+    }
+  }, [currentTime, isPlaying, lines, selectedId])
 
   const handleUpdateLine = useCallback((id: string, updates: Partial<SubtitleLine>) => {
-    setLines((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...updates } : l)),
-    )
+    const updated = lines.map((l) => (l.id === id ? { ...l, ...updates } : l))
+    pushLines(updated)
     setDirty(true)
-  }, [])
+  }, [lines, pushLines])
 
   const handleSave = useCallback(async () => {
     if (!jobId) return
     try {
       await saveJobSubtitles(jobId, lines)
       setDirty(false)
+      toastSuccess(t("toast.subtitleSaved"))
     } catch (e) {
       console.error("Failed to save subtitles:", e)
+      toastError(t("toast.subtitleSaveFailed"))
     }
-  }, [jobId, lines])
+  }, [jobId, lines, t])
 
   const handleExport = useCallback(async () => {
     if (!jobId || lines.length === 0) return
@@ -221,56 +245,109 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
         translated: l.translated_text || undefined,
       }))
       await exportSubtitles(segments, subtitleFormat, outputDir, jobId)
+      toastSuccess(t("toast.exportSuccess"))
     } catch (e) {
       console.error("Failed to export:", e)
+      toastError(t("toast.exportFailed"))
     }
-  }, [jobId, lines, subtitleFormat, outputDir])
+  }, [jobId, lines, subtitleFormat, outputDir, t])
 
   const handleSplitLine = useCallback((id: string) => {
-    setLines((prev) => {
-      const idx = prev.findIndex((l) => l.id === id)
-      if (idx < 0) return prev
-      const line = prev[idx]
-      if (!canSplit(line)) return prev
-      const time = getSplitTime(line, currentTime)
-      const [first, second] = splitLine(line, time)
-      const next = [...prev]
-      next.splice(idx, 1, first, second)
-      setSelectedId(first.id)
-      setDirty(true)
-      return reindex(next)
-    })
-  }, [currentTime])
+    const idx = lines.findIndex((l) => l.id === id)
+    if (idx < 0) return
+    const line = lines[idx]
+    if (!canSplit(line)) return
+    const time = getSplitTime(line, currentTime)
+    const [first, second] = splitLine(line, time)
+    const next = [...lines]
+    next.splice(idx, 1, first, second)
+    pushLines(reindex(next))
+    setSelectedId(first.id)
+    setDirty(true)
+  }, [lines, currentTime, pushLines])
 
   const handleMergeWithNext = useCallback((id: string) => {
-    setLines((prev) => {
-      const idx = prev.findIndex((l) => l.id === id)
-      if (idx < 0 || idx >= prev.length - 1) return prev
-      const merged = mergeLines(prev[idx], prev[idx + 1])
-      const next = [...prev]
-      next.splice(idx, 2, merged)
-      setSelectedId(merged.id)
-      setDirty(true)
-      return reindex(next)
-    })
-  }, [])
+    const idx = lines.findIndex((l) => l.id === id)
+    if (idx < 0 || idx >= lines.length - 1) return
+    const merged = mergeLines(lines[idx], lines[idx + 1])
+    const next = [...lines]
+    next.splice(idx, 2, merged)
+    pushLines(reindex(next))
+    setSelectedId(merged.id)
+    setDirty(true)
+  }, [lines, pushLines])
 
-  // Keyboard shortcuts for split/merge
+  const handleDeleteLine = useCallback((id: string) => {
+    const next = reindex(lines.filter((l) => l.id !== id))
+    pushLines(next)
+    if (selectedId === id) setSelectedId(null)
+    setDirty(true)
+  }, [lines, pushLines, selectedId])
+
+  const handleTogglePlay = useCallback(() => {
+    if (audioReady && audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause()
+      } else {
+        audioRef.current.play()
+      }
+    }
+    setIsPlaying((p) => !p)
+  }, [audioReady, isPlaying])
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!selectedId) return
-      if (e.ctrlKey && e.shiftKey && e.key === "S") {
+      const tag = (e.target as HTMLElement)?.tagName
+      const isEditing = tag === "INPUT" || tag === "TEXTAREA"
+
+      // Ctrl+Z — Undo (always)
+      if (e.ctrlKey && !e.shiftKey && e.key === "z") {
+        e.preventDefault()
+        undo()
+        setDirty(true)
+        return
+      }
+      // Ctrl+Y or Ctrl+Shift+Z — Redo (always)
+      if ((e.ctrlKey && e.key === "y") || (e.ctrlKey && e.shiftKey && e.key === "Z")) {
+        e.preventDefault()
+        redo()
+        setDirty(true)
+        return
+      }
+      // Ctrl+S — Save (always)
+      if (e.ctrlKey && !e.shiftKey && e.key === "s") {
+        e.preventDefault()
+        handleSave()
+        return
+      }
+      // Space — Play/Pause (not in text fields)
+      if (e.key === " " && !isEditing) {
+        e.preventDefault()
+        handleTogglePlay()
+        return
+      }
+      // Delete — Delete subtitle (not in text fields)
+      if (e.key === "Delete" && !isEditing && selectedId) {
+        e.preventDefault()
+        handleDeleteLine(selectedId)
+        return
+      }
+      // Ctrl+Shift+S — Split
+      if (e.ctrlKey && e.shiftKey && e.key === "S" && selectedId) {
         e.preventDefault()
         handleSplitLine(selectedId)
+        return
       }
-      if (e.ctrlKey && e.shiftKey && e.key === "M") {
+      // Ctrl+Shift+M — Merge
+      if (e.ctrlKey && e.shiftKey && e.key === "M" && selectedId) {
         e.preventDefault()
         handleMergeWithNext(selectedId)
       }
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [selectedId, handleSplitLine, handleMergeWithNext])
+  }, [selectedId, handleSplitLine, handleMergeWithNext, handleDeleteLine, handleSave, handleTogglePlay, undo, redo])
 
   const canSplitLine = useMemo(() => {
     return selectedLine ? canSplit(selectedLine) : false
@@ -286,17 +363,6 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
       audioRef.current.currentTime = time
     }
   }, [])
-
-  const handleTogglePlay = useCallback(() => {
-    if (audioReady && audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause()
-      } else {
-        audioRef.current.play()
-      }
-    }
-    setIsPlaying((p) => !p)
-  }, [audioReady, isPlaying])
 
   const handleSkipPrev = useCallback(() => {
     const prev = [...lines].reverse().find((l) => l.start_time < currentTime - 0.5)
@@ -348,16 +414,40 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
             <span className="text-xs text-yellow-500">{t("editor.unsaved")}</span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleSave} disabled={!dirty}>
-            <Save className="mr-1.5 h-3.5 w-3.5" />
-            {t("editor.save")}
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={lines.length === 0}>
-            <Download className="mr-1.5 h-3.5 w-3.5" />
-            {t("editor.export")}
-          </Button>
-        </div>
+        <TooltipProvider>
+          <div className="flex items-center gap-1.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={undo} disabled={!canUndo}>
+                  <Undo2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{t("editor.undo")} <kbd className="ml-1 text-[10px] opacity-60">Ctrl+Z</kbd></p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={redo} disabled={!canRedo}>
+                  <Redo2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{t("editor.redo")} <kbd className="ml-1 text-[10px] opacity-60">Ctrl+Y</kbd></p></TooltipContent>
+            </Tooltip>
+            <div className="w-px h-4 bg-border mx-1" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleSave} disabled={!dirty}>
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                  {t("editor.save")}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p><kbd className="text-[10px] opacity-60">Ctrl+S</kbd></p></TooltipContent>
+            </Tooltip>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={lines.length === 0}>
+              <Download className="mr-1.5 h-3.5 w-3.5" />
+              {t("editor.export")}
+            </Button>
+          </div>
+        </TooltipProvider>
       </div>
 
       {/* Main content: waveform + panels */}
@@ -381,11 +471,13 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
           duration={duration}
           isPlaying={isPlaying}
           volume={volume}
+          playbackRate={playbackRate}
           onTogglePlay={handleTogglePlay}
           onSeek={handleSeek}
           onSkipPrev={handleSkipPrev}
           onSkipNext={handleSkipNext}
           onVolumeChange={setVolume}
+          onPlaybackRateChange={setPlaybackRate}
         />
 
         {/* Subtitle list + Edit panel */}
@@ -398,6 +490,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
               onSelect={setSelectedId}
               onSplit={handleSplitLine}
               onMergeWithNext={handleMergeWithNext}
+              onDelete={handleDeleteLine}
             />
           </ResizablePanel>
           <ResizableHandle />
@@ -407,6 +500,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat }: Edito
               onUpdateLine={handleUpdateLine}
               onSplit={handleSplitLine}
               onMergeWithNext={handleMergeWithNext}
+              onDelete={handleDeleteLine}
               canSplitLine={canSplitLine}
               canMergeLine={canMergeLine}
             />

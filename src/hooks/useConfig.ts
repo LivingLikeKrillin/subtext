@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getConfig, updateConfig } from "../lib/tauriApi";
+import { toastError } from "../lib/toast";
+import i18n from "../i18n";
 import type { AppConfig, PartialConfig } from "../types";
 
 export function useConfig() {
@@ -15,6 +17,7 @@ export function useConfig() {
       setConfig(cfg);
     } catch (e) {
       console.error("Failed to load config:", e);
+      toastError(i18n.t("toast.configLoadFailed"));
       setError(String(e));
     } finally {
       setLoading(false);
@@ -33,6 +36,7 @@ export function useConfig() {
         return updated;
       } catch (e) {
         console.error("Failed to update config:", e);
+        toastError(i18n.t("toast.configSaveFailed"));
         setError(String(e));
         throw e;
       }

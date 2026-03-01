@@ -7,7 +7,20 @@ import {
   Gauge,
   Monitor,
   Info,
+  RotateCcw,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toastSuccess, toastError } from "@/lib/toast"
 import { GeneralSection } from "./GeneralSection"
 import { PathsSection } from "./PathsSection"
 import { ModelsSection } from "./ModelsSection"
@@ -42,6 +55,30 @@ export function SettingsPage({
 }: SettingsPageProps) {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+
+  const DEFAULT_CONFIG: PartialConfig = {
+    profile: "lite",
+    subtitle_format: "srt",
+    source_language: "auto",
+    target_language: "ko",
+    translation_mode: "local",
+    context_window: 2,
+    style_preset: "natural",
+    gpu_acceleration: null,
+    max_concurrent_jobs: null,
+    max_memory_mb: null,
+  }
+
+  function handleResetDefaults() {
+    try {
+      onUpdateConfig(DEFAULT_CONFIG)
+      toastSuccess(t("toast.configResetSuccess"))
+    } catch {
+      toastError(t("toast.configResetFailed"))
+    }
+    setResetDialogOpen(false)
+  }
 
   return (
     <div className="flex gap-4 h-full">
@@ -64,7 +101,30 @@ export function SettingsPage({
             </button>
           )
         })}
+        <div className="flex-1" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="justify-start text-muted-foreground"
+          onClick={() => setResetDialogOpen(true)}
+        >
+          <RotateCcw className="mr-2 h-3.5 w-3.5" />
+          {t("settings.restoreDefaults")}
+        </Button>
       </nav>
+
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("confirm.resetConfig")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("confirm.resetConfigMsg")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("shared.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetDefaults}>{t("shared.confirm")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Right content */}
       <div className="flex-1 overflow-y-auto min-w-0 px-1">

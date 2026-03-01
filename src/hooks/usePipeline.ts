@@ -8,6 +8,8 @@ import {
   cancelTranslate,
   saveJobSubtitles,
 } from "../lib/tauriApi";
+import { toastError } from "../lib/toast";
+import i18n from "../i18n";
 
 interface SttSegmentEvent {
   job_id: string;
@@ -132,7 +134,20 @@ export function usePipeline(
       }
     });
 
-    Promise.all([p1, p2, p3]).then((fns) => {
+    const p4 = listen("server-crashed", () => {
+      // Fail all active pipelines
+      for (const [, pipeline] of pipelinesRef.current) {
+        pipeline.phase = "error";
+        onJobUpdate(pipeline.dashboardJobId, {
+          status: "failed",
+          stage: "error",
+          error: "Server crashed",
+        });
+      }
+      pipelinesRef.current.clear();
+    });
+
+    Promise.all([p1, p2, p3, p4]).then((fns) => {
       unlistenersRef.current = fns;
     });
 
@@ -185,6 +200,7 @@ export function usePipeline(
       await saveJobSubtitles(pipeline.dashboardJobId, lines);
     } catch (e) {
       console.error("Failed to save subtitles:", e);
+      toastError(i18n.t("toast.subtitleSaveFailed"));
     }
 
     onJobUpdate(pipeline.dashboardJobId, {
@@ -220,10 +236,12 @@ export function usePipeline(
         pipeline.sttJobId = job.id;
       } catch (e) {
         pipeline.phase = "error";
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        toastError(i18n.t("toast.pipelineFailed"), errorMsg);
         onJobUpdate(dashboardJobId, {
           status: "failed",
           stage: "error",
-          error: e instanceof Error ? e.message : String(e),
+          error: errorMsg,
         });
         pipelinesRef.current.delete(dashboardJobId);
       }
@@ -243,6 +261,7 @@ export function usePipeline(
       }
     } catch (e) {
       console.error("Failed to cancel pipeline:", e);
+      toastError(i18n.t("toast.pipelineCancelFailed"));
     }
   }, []);
 

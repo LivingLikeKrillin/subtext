@@ -119,14 +119,14 @@ export function AppSidebar({
             {hardwareInfo?.gpu ? (
               <>
                 <span className="h-1.5 w-1.5 rounded-full bg-status-success" />
-                <span>CUDA {hardwareInfo.gpu.cuda_version ?? "N/A"}</span>
+                <span>{t("hw.cuda", { version: hardwareInfo.gpu.cuda_version ?? "N/A" })}</span>
                 <span className="text-muted-foreground/60">|</span>
                 <span>{(hardwareInfo.gpu.vram_mb / 1024).toFixed(0)}GB VRAM</span>
               </>
             ) : (
               <>
                 <span className="h-1.5 w-1.5 rounded-full bg-status-warning" />
-                <span>CPU Only</span>
+                <span>{t("hw.cpuOnly")}</span>
               </>
             )}
           </div>
@@ -146,22 +146,22 @@ export function AppSidebar({
                     <Monitor className="h-4 w-4" />
                   )}
                   <span>
-                    {theme === "dark" ? "Dark" : theme === "light" ? "Light" : "System"}
+                    {theme === "dark" ? t("theme.dark") : theme === "light" ? t("theme.light") : t("theme.system")}
                   </span>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start">
                 <DropdownMenuItem onClick={() => setTheme("light")}>
                   <Sun className="mr-2 h-4 w-4" />
-                  Light
+                  {t("theme.light")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("dark")}>
                   <Moon className="mr-2 h-4 w-4" />
-                  Dark
+                  {t("theme.dark")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("system")}>
                   <Monitor className="mr-2 h-4 w-4" />
-                  System
+                  {t("theme.system")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -2,18 +2,29 @@ import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-rea
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface PlaybackControlsProps {
   currentTime: number
   duration: number
   isPlaying: boolean
   volume: number
+  playbackRate: number
   onTogglePlay: () => void
   onSeek: (time: number) => void
   onSkipPrev: () => void
   onSkipNext: () => void
   onVolumeChange: (v: number) => void
+  onPlaybackRateChange: (rate: number) => void
 }
+
+const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -29,11 +40,13 @@ export function PlaybackControls({
   duration,
   isPlaying,
   volume,
+  playbackRate,
   onTogglePlay,
   onSeek,
   onSkipPrev,
   onSkipNext,
   onVolumeChange,
+  onPlaybackRateChange,
 }: PlaybackControlsProps) {
   const VolumeIcon = volume === 0 ? VolumeX : Volume2
 
@@ -67,6 +80,18 @@ export function PlaybackControls({
       <span className="text-xs tabular-nums text-muted-foreground w-20 text-right">
         {formatTime(duration)}
       </span>
+
+      {/* Playback speed */}
+      <Select value={String(playbackRate)} onValueChange={(v) => onPlaybackRateChange(Number(v))}>
+        <SelectTrigger className="h-7 w-16 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {RATES.map((r) => (
+            <SelectItem key={r} value={String(r)}>{r}x</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <Popover>
         <PopoverTrigger asChild>
