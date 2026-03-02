@@ -35,9 +35,14 @@
     "actions": {
       "remove": "Remove",
       "retry": "Retry",
+      "retryTranslation": "Retry Translation Only",
       "openEditor": "Open in Editor"
     },
     "search": "Search files...",
+    "dropOverlay": "Drop files here to create a new job",
+    "stats": {
+      "processedIn": "Processed in {{time}}"
+    },
     "sort": {
       "newest": "Newest first",
       "oldest": "Oldest first",
@@ -95,6 +100,9 @@
     "startTime": "Start",
     "endTime": "End",
     "playbackSpeed": "Speed",
+    "processing": "Processing...",
+    "autoSaving": "Auto-saving...",
+    "autoSaved": "Auto-saved",
     "video": {
       "show": "Show Video",
       "hide": "Hide Video"
@@ -512,6 +520,7 @@
       "notInstalled": "Not Installed",
       "categoryGeneral": "General",
       "categoryInstruct": "Instruct",
+      "langRecommended": "Multilingual",
       "status": {
         "downloading": "Downloading",
         "verifying": "Verifying",

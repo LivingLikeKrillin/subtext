@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { Save, Download, FileText, Undo2, Redo2, Search, Video, VideoOff } from "lucide-react"
+import { Save, Download, FileText, Undo2, Redo2, Search, Video, VideoOff, Loader2 } from "lucide-react"
 import { toastSuccess, toastError } from "@/lib/toast"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
@@ -32,9 +32,10 @@ interface EditorPageProps {
   subtitleFormat: string
   vocabularies?: Vocabulary[]
   onUpdateVocabulary?: (v: Vocabulary) => Promise<Vocabulary[]>
+  liveLines?: SubtitleLine[]
 }
 
-export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabularies, onUpdateVocabulary }: EditorPageProps) {
+export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabularies, onUpdateVocabulary, liveLines: liveLinesFromPipeline }: EditorPageProps) {
   const { t } = useTranslation()
   const { present: lines, push: pushLines, undo, redo, reset: resetLines, canUndo, canRedo } = useHistory<SubtitleLine[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -54,6 +55,51 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
 
   // Zoom & Pan state
   const [zoomLevel, setZoomLevel] = useState(1)
+
+  // Live mode
+  const liveMode = !!liveLinesFromPipeline
+  const displayLines = liveMode ? liveLinesFromPipeline : lines
+
+  // Auto-save
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (liveMode || !dirty || !jobId) return
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(async () => {
+      setAutoSaveStatus("saving")
+      try {
+        await saveJobSubtitles(jobId, lines)
+        setAutoSaveStatus("saved")
+        setDirty(false)
+        setTimeout(() => setAutoSaveStatus("idle"), 2000)
+      } catch (e) {
+        console.error("Auto-save failed:", e)
+        setAutoSaveStatus("idle")
+      }
+    }, 30000)
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    }
+  }, [dirty, jobId, lines, liveMode])
+
+  // When liveMode ends (pipeline completes), reload from disk
+  const prevLiveModeRef = useRef(liveMode)
+  useEffect(() => {
+    if (prevLiveModeRef.current && !liveMode && jobId) {
+      // Transition from live → edit: reload final result from disk
+      loadJobSubtitles(jobId)
+        .then((data) => {
+          resetLines(data)
+          setDirty(false)
+        })
+        .catch((e) => {
+          console.error("Failed to reload subtitles after pipeline:", e)
+        })
+    }
+    prevLiveModeRef.current = liveMode
+  }, [liveMode, jobId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Find & Replace state
   const [findOpen, setFindOpen] = useState(false)
@@ -215,6 +261,13 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
     if (mediaRef.current) mediaRef.current.playbackRate = playbackRate
   }, [playbackRate])
 
+  // Current subtitle for video overlay
+  const currentSubtitle = useMemo(() => {
+    const active = displayLines.find((l) => currentTime >= l.start_time && currentTime <= l.end_time)
+    if (!active) return null
+    return active.translated_text || active.original_text || null
+  }, [displayLines, currentTime])
+
   const subtitleDuration = useMemo(() => {
     if (lines.length === 0) return 0
     return Math.max(...lines.map((l) => l.end_time))
@@ -295,6 +348,18 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
     pushLines(updated)
     setDirty(true)
   }, [lines, pushLines])
+
+  const handleUpdateLineTiming = useCallback((id: string, update: { start_time?: number; end_time?: number }) => {
+    if (liveMode) return
+    const line = lines.find((l) => l.id === id)
+    if (!line) return
+    const newStart = update.start_time ?? line.start_time
+    const newEnd = update.end_time ?? line.end_time
+    // Validate: start < end, minimum 0.1s
+    if (newEnd - newStart < 0.1) return
+    if (newStart < 0) return
+    handleUpdateLine(id, { start_time: newStart, end_time: newEnd })
+  }, [lines, liveMode, handleUpdateLine])
 
   const handleSave = useCallback(async () => {
     if (!jobId) return
@@ -572,17 +637,29 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
       <div className="flex items-center justify-between px-1 pb-3 border-b">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            {lines.length} {t("editor.subtitlesCount")}
+            {displayLines.length} {t("editor.subtitlesCount")}
           </span>
-          {dirty && (
+          {liveMode && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-orange-500 font-medium">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {t("editor.processing")}
+            </span>
+          )}
+          {!liveMode && dirty && (
             <span className="text-xs text-yellow-500">{t("editor.unsaved")}</span>
+          )}
+          {!liveMode && autoSaveStatus === "saving" && (
+            <span className="text-xs text-muted-foreground">{t("editor.autoSaving")}</span>
+          )}
+          {!liveMode && autoSaveStatus === "saved" && (
+            <span className="text-xs text-green-500">{t("editor.autoSaved")}</span>
           )}
         </div>
         <TooltipProvider>
           <div className="flex items-center gap-1.5">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={undo} disabled={!canUndo}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={undo} disabled={liveMode || !canUndo}>
                   <Undo2 className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
@@ -590,7 +667,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={redo} disabled={!canRedo}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={redo} disabled={liveMode || !canRedo}>
                   <Redo2 className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
@@ -599,14 +676,14 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
             <div className="w-px h-4 bg-border mx-1" />
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={handleSave} disabled={!dirty}>
+                <Button variant="outline" size="sm" onClick={handleSave} disabled={liveMode || !dirty}>
                   <Save className="mr-1.5 h-3.5 w-3.5" />
                   {t("editor.save")}
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p><kbd className="text-[10px] opacity-60">Ctrl+S</kbd></p></TooltipContent>
             </Tooltip>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={lines.length === 0}>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={liveMode || displayLines.length === 0}>
               <Download className="mr-1.5 h-3.5 w-3.5" />
               {t("editor.export")}
             </Button>
@@ -668,7 +745,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
       <div className="flex flex-1 flex-col min-h-0">
         {/* Video preview (visible when video file + toggled on) */}
         {isVideo && showVideo && videoElement && (
-          <VideoPreview videoElement={videoElement} />
+          <VideoPreview videoElement={videoElement} currentSubtitle={currentSubtitle} />
         )}
 
         {/* Minimap (visible only when zoomed) */}
@@ -685,7 +762,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
         {/* Waveform */}
         <div className="h-[100px] border-b shrink-0">
           <Waveform
-            lines={lines}
+            lines={displayLines}
             currentTime={currentTime}
             selectedId={selectedId}
             duration={duration}
@@ -697,6 +774,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
             onViewStartChange={handleViewStartChange}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
+            onUpdateLineTiming={liveMode ? undefined : handleUpdateLineTiming}
           />
         </div>
 
@@ -719,16 +797,17 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
         <ResizablePanelGroup className="flex-1 min-h-0">
           <ResizablePanel defaultSize={55} minSize={30}>
             <SubtitleList
-              lines={lines}
+              lines={displayLines}
               selectedId={selectedId}
               currentTime={currentTime}
               onSelect={setSelectedId}
               onSplit={handleSplitLine}
               onMergeWithNext={handleMergeWithNext}
-              onDelete={handleDeleteLine}
+              onDelete={liveMode ? undefined : handleDeleteLine}
               highlightMatches={findOpen ? searchMatches : undefined}
               currentMatchIndex={findOpen ? matchIndex : undefined}
               vocabularies={vocabularies}
+              readOnly={liveMode}
             />
           </ResizablePanel>
           <ResizableHandle />

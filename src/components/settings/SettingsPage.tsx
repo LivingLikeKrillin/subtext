@@ -150,6 +150,8 @@ export function SettingsPage({
               onUpdate={onUpdateConfig}
               onDelete={onDeleteModel}
               onDownload={onDownloadModel}
+              sourceLanguage={config.source_language}
+              targetLanguage={config.target_language}
             />
           )}
           {activeTab === "performance" && (

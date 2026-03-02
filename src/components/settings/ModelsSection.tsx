@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { Download, Trash2, CheckCircle2, Cpu, Monitor } from "lucide-react"
+import { Download, Trash2, CheckCircle2, Cpu, Monitor, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -38,6 +38,16 @@ interface ModelsSectionProps {
   onUpdate: (patch: PartialConfig) => void
   onDelete: (id: string) => void
   onDownload: (id: string) => void
+  sourceLanguage?: string
+  targetLanguage?: string
+}
+
+// All Qwen models are multilingual; specific model names can be mapped here if needed
+const MULTILINGUAL_MODEL_PATTERNS = ["qwen", "aya", "gemma", "llama"]
+
+function isLangRecommended(modelName: string): boolean {
+  const lower = modelName.toLowerCase()
+  return MULTILINGUAL_MODEL_PATTERNS.some((p) => lower.includes(p))
 }
 
 function formatSize(bytes: number): string {
@@ -84,6 +94,8 @@ export function ModelsSection({
   onUpdate,
   onDelete,
   onDownload,
+  sourceLanguage,
+  targetLanguage,
 }: ModelsSectionProps) {
   const { t } = useTranslation()
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -229,6 +241,7 @@ export function ModelsSection({
             const status = getStatus(entry.id)
             const canActivate = status === "ready"
             const fit = getLlmVramFit(entry.size_bytes, hardware)
+            const showLangBadge = (sourceLanguage || targetLanguage) && isLangRecommended(entry.name)
             return (
               <div
                 key={entry.id}
@@ -251,6 +264,12 @@ export function ModelsSection({
                     {entry.model_category === "general" && (
                       <Badge variant="outline" className="text-[10px] h-4">
                         {t("settings.models.categoryGeneral")}
+                      </Badge>
+                    )}
+                    {showLangBadge && (
+                      <Badge variant="secondary" className="text-[10px] h-4 gap-0.5 bg-blue-600/20 text-blue-500">
+                        <Globe className="h-2.5 w-2.5" />
+                        {t("settings.models.langRecommended")}
                       </Badge>
                     )}
                     {entry.id === activeLlmModel && (

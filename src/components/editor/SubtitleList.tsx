@@ -25,6 +25,7 @@ interface SubtitleListProps {
   highlightMatches?: SearchMatch[]
   currentMatchIndex?: number
   vocabularies?: Vocabulary[]
+  readOnly?: boolean
 }
 
 function formatTimestamp(seconds: number): string {
@@ -132,9 +133,17 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   editing: "secondary",
 }
 
-export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit, onMergeWithNext, onDelete, highlightMatches, currentMatchIndex, vocabularies }: SubtitleListProps) {
+export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit, onMergeWithNext, onDelete, highlightMatches, currentMatchIndex, vocabularies, readOnly }: SubtitleListProps) {
   const { t } = useTranslation()
   const selectedRef = useRef<HTMLDivElement>(null)
+  const lastLineRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to last line in readOnly/live mode
+  useEffect(() => {
+    if (readOnly && lastLineRef.current) {
+      lastLineRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" })
+    }
+  }, [readOnly, lines.length])
 
   // Pre-compile vocab terms and regex for highlighting
   const { vocabTerms, vocabRegex } = useMemo(() => {
@@ -179,14 +188,15 @@ export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit
           const isSelected = line.id === selectedId
           const isActive = currentTime >= line.start_time && currentTime <= line.end_time
           const duration = line.end_time - line.start_time
-          const splitDisabled = duration < 0.5
-          const mergeDisabled = lineIndex >= lines.length - 1
+          const splitDisabled = readOnly || duration < 0.5
+          const mergeDisabled = readOnly || lineIndex >= lines.length - 1
+          const isLast = lineIndex === lines.length - 1
 
           return (
             <ContextMenu key={line.id}>
               <ContextMenuTrigger asChild>
                 <div
-                  ref={isSelected ? selectedRef : undefined}
+                  ref={isSelected ? selectedRef : isLast && readOnly ? lastLineRef : undefined}
                   className={`flex gap-3 rounded-md px-3 py-2 cursor-pointer transition-colors ${
                     isSelected
                       ? "bg-primary/10 ring-1 ring-primary/30"

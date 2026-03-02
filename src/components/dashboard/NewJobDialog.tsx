@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ interface NewJobDialogProps {
   presets: Preset[]
   vocabularies: Vocabulary[]
   onSubmit: (files: SelectedFile[], presetId: string) => void
+  initialFiles?: SelectedFile[]
 }
 
 export interface SelectedFile {
@@ -35,9 +36,16 @@ function formatSize(bytes: number) {
   return `${(bytes / 1e6).toFixed(0)} MB`
 }
 
-export function NewJobDialog({ open, onOpenChange, presets, vocabularies, onSubmit }: NewJobDialogProps) {
+export function NewJobDialog({ open, onOpenChange, presets, vocabularies, onSubmit, initialFiles }: NewJobDialogProps) {
   const { t } = useTranslation()
   const [files, setFiles] = useState<SelectedFile[]>([])
+
+  // Load initial files from drag & drop
+  useEffect(() => {
+    if (open && initialFiles && initialFiles.length > 0) {
+      setFiles(initialFiles)
+    }
+  }, [open, initialFiles])
   const [selectedPreset, setSelectedPreset] = useState(() => {
     const defaultPreset = presets.find((p) => p.is_default)
     return defaultPreset?.id ?? presets[0]?.id ?? ""

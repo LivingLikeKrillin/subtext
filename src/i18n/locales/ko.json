@@ -35,9 +35,14 @@
     "actions": {
       "remove": "삭제",
       "retry": "재시도",
+      "retryTranslation": "번역만 재시도",
       "openEditor": "에디터 열기"
     },
     "search": "파일 검색...",
+    "dropOverlay": "파일을 여기에 놓아 새 작업을 만드세요",
+    "stats": {
+      "processedIn": "처리 시간: {{time}}"
+    },
     "sort": {
       "newest": "최신순",
       "oldest": "오래된순",
@@ -95,6 +100,9 @@
     "startTime": "시작",
     "endTime": "끝",
     "playbackSpeed": "재생 속도",
+    "processing": "처리 중...",
+    "autoSaving": "자동 저장 중...",
+    "autoSaved": "자동 저장됨",
     "video": {
       "show": "비디오 표시",
       "hide": "비디오 숨기기"
@@ -512,6 +520,7 @@
       "notInstalled": "미설치",
       "categoryGeneral": "범용",
       "categoryInstruct": "인스트럭트",
+      "langRecommended": "다국어",
       "status": {
         "downloading": "다운로드 중",
         "verifying": "검증 중",

@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react"
-import { Plus, Trash2, FileVideo, Clock, Filter, MoreHorizontal, RotateCcw, Search, ArrowUpDown, PenLine } from "lucide-react"
+import { useState, useMemo, useCallback } from "react"
+import { Plus, Trash2, FileVideo, Clock, Filter, MoreHorizontal, RotateCcw, Search, ArrowUpDown, PenLine, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toastInfo, toastError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
@@ -80,6 +80,19 @@ function formatDate(iso: string, locale: string) {
   return d.toLocaleDateString(dateLocale, { month: "short", day: "numeric" })
 }
 
+function formatProcessingTime(createdAt: string, completedAt?: string) {
+  if (!completedAt) return null
+  const diffMs = new Date(completedAt).getTime() - new Date(createdAt).getTime()
+  if (diffMs < 0) return null
+  const secs = Math.floor(diffMs / 1000)
+  if (secs < 60) return `${secs}s`
+  const mins = Math.floor(secs / 60)
+  const remainSecs = secs % 60
+  if (mins < 60) return `${mins}m ${remainSecs}s`
+  const hrs = Math.floor(mins / 60)
+  return `${hrs}h ${mins % 60}m`
+}
+
 export function DashboardPage({
   jobs,
   presets,
@@ -94,6 +107,44 @@ export function DashboardPage({
   const [filter, setFilter] = useState<FilterStatus>("all")
   const [search, setSearch] = useState("")
   const [sort, setSort] = useState<SortOption>("newest")
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
+  const [droppedFiles, setDroppedFiles] = useState<SelectedFile[] | undefined>(undefined)
+
+  const handlePageDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDraggingOver(true)
+    }
+  }, [])
+
+  const handlePageDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Only set false if leaving the container (not entering a child)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const { clientX, clientY } = e
+    if (clientX <= rect.left || clientX >= rect.right || clientY <= rect.top || clientY >= rect.bottom) {
+      setIsDraggingOver(false)
+    }
+  }, [])
+
+  const handlePageDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(false)
+    const files = Array.from(e.dataTransfer.files)
+      .filter((f) => f.type.startsWith("video/") || f.type.startsWith("audio/"))
+      .map((f) => ({
+        name: f.name,
+        path: f.name,
+        size: f.size,
+      }))
+    if (files.length > 0) {
+      setDroppedFiles(files)
+      setNewJobOpen(true)
+    }
+  }, [])
 
   const filteredJobs = useMemo(() => {
     let result = filter === "all" ? jobs : jobs.filter((j) => j.status === filter)
@@ -131,7 +182,22 @@ export function DashboardPage({
   ]
 
   return (
-    <>
+    <div
+      className="relative flex flex-col flex-1"
+      onDragOver={handlePageDragOver}
+      onDragLeave={handlePageDragLeave}
+      onDrop={handlePageDrop}
+    >
+      {/* Drag overlay */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/5 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2 text-primary">
+            <FileVideo className="h-10 w-10" />
+            <p className="text-sm font-medium">{t("dashboard.dropOverlay")}</p>
+          </div>
+        </div>
+      )}
+
       {/* Filter bar */}
       <div className="flex items-center gap-2 border-b px-0 pb-3 mb-4">
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted">
@@ -176,6 +242,24 @@ export function DashboardPage({
         </Button>
       </div>
 
+      {/* Stats summary */}
+      {jobs.length > 0 && (
+        <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3 text-green-500" />
+            {counts.completed} {t("dashboard.filter.completed")}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Loader2 className="h-3 w-3 text-blue-500" />
+            {counts.processing} {t("dashboard.filter.processing")}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <AlertCircle className="h-3 w-3 text-red-500" />
+            {counts.failed} {t("dashboard.filter.failed")}
+          </span>
+        </div>
+      )}
+
       {/* Job table */}
       {filteredJobs.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
@@ -212,9 +296,9 @@ export function DashboardPage({
                   key={job.id}
                   className="group cursor-pointer"
                   onClick={() => {
-                    if (job.status === "completed") {
+                    if (job.status === "completed" || job.status === "processing") {
                       onOpenEditor?.(job.id, job.file_path)
-                    } else if (job.status === "processing" || job.status === "pending") {
+                    } else if (job.status === "pending") {
                       toastInfo(t("toast.jobStillProcessing"))
                     } else if (job.status === "failed") {
                       toastError(t("toast.jobFailedClick"), job.error)
@@ -268,9 +352,16 @@ export function DashboardPage({
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {formatDate(job.created_at, i18n.language)}
+                    <div className="flex flex-col items-end gap-0.5">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(job.created_at, i18n.language)}
+                      </div>
+                      {job.status === "completed" && job.completed_at && (
+                        <span className="text-[10px] text-muted-foreground/60">
+                          {t("dashboard.stats.processedIn", { time: formatProcessingTime(job.created_at, job.completed_at) })}
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -287,7 +378,7 @@ export function DashboardPage({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {job.status === "completed" && onOpenEditor && (
+                        {(job.status === "completed" || job.status === "processing") && onOpenEditor && (
                           <>
                             <DropdownMenuItem
                               onClick={(e) => { e.stopPropagation(); onOpenEditor(job.id, job.file_path) }}
@@ -328,11 +419,15 @@ export function DashboardPage({
 
       <NewJobDialog
         open={newJobOpen}
-        onOpenChange={setNewJobOpen}
+        onOpenChange={(open) => {
+          setNewJobOpen(open)
+          if (!open) setDroppedFiles(undefined)
+        }}
         presets={presets}
         vocabularies={vocabularies}
         onSubmit={onNewJob}
+        initialFiles={droppedFiles}
       />
-    </>
+    </div>
   )
 }

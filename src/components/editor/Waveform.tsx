@@ -14,6 +14,15 @@ interface WaveformProps {
   onViewStartChange: (viewStart: number) => void
   onZoomIn: () => void
   onZoomOut: () => void
+  onUpdateLineTiming?: (id: string, update: { start_time?: number; end_time?: number }) => void
+}
+
+interface ResizeState {
+  lineId: string
+  edge: "left" | "right"
+  startX: number
+  origStart: number
+  origEnd: number
 }
 
 export function Waveform({
@@ -29,10 +38,12 @@ export function Waveform({
   onViewStartChange,
   onZoomIn,
   onZoomOut,
+  onUpdateLineTiming,
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ startX: number; startViewStart: number; moved: boolean } | null>(null)
+  const resizeRef = useRef<ResizeState | null>(null)
 
   const timeToX = useCallback(
     (t: number, w: number) => ((t - viewStart) / visibleDuration) * w,
@@ -237,13 +248,75 @@ export function Waveform({
     return () => canvas.removeEventListener("wheel", handleWheel)
   }, [viewStart, visibleDuration, duration, onZoomIn, onZoomOut, onViewStartChange])
 
-  // Drag pan
+  // Edge hit test: detect if mouse is near left/right edge of a subtitle block
+  const EDGE_PX = 6
+  const trackH = 24
+
+  const hitTestEdge = useCallback(
+    (clientX: number, clientY: number): { lineId: string; edge: "left" | "right" } | null => {
+      const canvas = canvasRef.current
+      if (!canvas) return null
+      const rect = canvas.getBoundingClientRect()
+      const x = clientX - rect.left
+      const y = clientY - rect.top
+      const h = rect.height
+      const trackY = (h - trackH) / 2 - 6
+
+      // Only detect edges within the track Y range
+      if (y < trackY || y > trackY + trackH) return null
+
+      for (const line of lines) {
+        if (line.end_time < viewStart || line.start_time > viewStart + visibleDuration) continue
+        const x1 = timeToX(line.start_time, rect.width)
+        const x2 = timeToX(line.end_time, rect.width)
+
+        if (Math.abs(x - x1) <= EDGE_PX) return { lineId: line.id, edge: "left" }
+        if (Math.abs(x - x2) <= EDGE_PX) return { lineId: line.id, edge: "right" }
+      }
+      return null
+    },
+    [lines, viewStart, visibleDuration, timeToX],
+  )
+
+  // Hover cursor change for edge detection
+  const handleMouseMoveHover = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (dragRef.current || resizeRef.current) return
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const hit = hitTestEdge(e.clientX, e.clientY)
+      canvas.style.cursor = hit && onUpdateLineTiming ? "col-resize" : "crosshair"
+    },
+    [hitTestEdge, onUpdateLineTiming],
+  )
+
+  // Drag pan / Resize
   function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+    // Check for edge resize first
+    if (onUpdateLineTiming) {
+      const hit = hitTestEdge(e.clientX, e.clientY)
+      if (hit) {
+        const line = lines.find((l) => l.id === hit.lineId)
+        if (line) {
+          resizeRef.current = {
+            lineId: hit.lineId,
+            edge: hit.edge,
+            startX: e.clientX,
+            origStart: line.start_time,
+            origEnd: line.end_time,
+          }
+          return
+        }
+      }
+    }
     dragRef.current = { startX: e.clientX, startViewStart: viewStart, moved: false }
   }
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
+      // Handle resize — just consume the event; actual update happens on mouseUp
+      if (resizeRef.current) return
+
       if (!dragRef.current) return
       const dx = e.clientX - dragRef.current.startX
       if (Math.abs(dx) > 3) dragRef.current.moved = true
@@ -258,6 +331,31 @@ export function Waveform({
     }
 
     const handleMouseUp = (e: MouseEvent) => {
+      // Handle resize end
+      if (resizeRef.current && onUpdateLineTiming) {
+        const canvas = canvasRef.current
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect()
+          const dx = e.clientX - resizeRef.current.startX
+          const timeDelta = (dx / rect.width) * visibleDuration
+          const MIN_DURATION = 0.1
+
+          if (resizeRef.current.edge === "left") {
+            const newStart = Math.max(0, resizeRef.current.origStart + timeDelta)
+            if (resizeRef.current.origEnd - newStart >= MIN_DURATION) {
+              onUpdateLineTiming(resizeRef.current.lineId, { start_time: newStart })
+            }
+          } else {
+            const newEnd = Math.max(0, resizeRef.current.origEnd + timeDelta)
+            if (newEnd - resizeRef.current.origStart >= MIN_DURATION) {
+              onUpdateLineTiming(resizeRef.current.lineId, { end_time: newEnd })
+            }
+          }
+        }
+        resizeRef.current = null
+        return
+      }
+
       if (!dragRef.current) return
       const wasDrag = dragRef.current.moved
       dragRef.current = null
@@ -285,7 +383,7 @@ export function Waveform({
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("mouseup", handleMouseUp)
     }
-  }, [visibleDuration, duration, onViewStartChange, lines, onSelect, onSeek, xToTime])
+  }, [visibleDuration, duration, onViewStartChange, lines, onSelect, onSeek, xToTime, onUpdateLineTiming])
 
   return (
     <div ref={containerRef} className="relative w-full h-full min-h-[80px]">
@@ -293,6 +391,7 @@ export function Waveform({
         ref={canvasRef}
         className="w-full h-full cursor-crosshair"
         onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMoveHover}
       />
     </div>
   )

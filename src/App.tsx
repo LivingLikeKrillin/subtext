@@ -24,8 +24,8 @@ import { PresetsPage } from "./components/presets/PresetsPage";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { Toaster } from "./components/ui/sonner";
 import { Button } from "./components/ui/button";
-import type { AppScreen, MainPage, DashboardJob } from "./types";
-import { loadDashboardJobs, saveDashboardJobs } from "./lib/tauriApi";
+import type { AppScreen, MainPage, DashboardJob, SubtitleLine } from "./types";
+import { loadDashboardJobs, saveDashboardJobs, loadJobSubtitles } from "./lib/tauriApi";
 
 function determineScreen(
   configLoading: boolean,
@@ -61,17 +61,43 @@ function App() {
   const [dashboardJobs, setDashboardJobs] = useState<DashboardJob[]>([]);
   const [editorJobId, setEditorJobId] = useState<string | null>(null);
   const [editorFilePath, setEditorFilePath] = useState<string | null>(null);
+  const [liveLines, setLiveLines] = useState<Map<string, SubtitleLine[]>>(new Map());
 
   const handleJobUpdate = useCallback(
     (jobId: string, update: { status?: DashboardJob["status"]; stage?: DashboardJob["stage"]; progress?: number; error?: string }) => {
       setDashboardJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, ...update } : j)),
+        prev.map((j) => {
+          if (j.id !== jobId) return j;
+          const patched = { ...j, ...update };
+          // Set completed_at when job finishes or fails
+          if ((update.status === "completed" || update.status === "failed") && !j.completed_at) {
+            patched.completed_at = new Date().toISOString();
+          }
+          return patched;
+        }),
       );
+      // Clear liveLines when pipeline finishes
+      if (update.status === "completed" || update.status === "failed") {
+        setLiveLines((prev) => {
+          if (!prev.has(jobId)) return prev;
+          const next = new Map(prev);
+          next.delete(jobId);
+          return next;
+        });
+      }
     },
     [],
   );
 
-  const { processJob } = usePipeline(handleJobUpdate);
+  const handleLiveSegments = useCallback((jobId: string, lines: SubtitleLine[]) => {
+    setLiveLines((prev) => {
+      const next = new Map(prev);
+      next.set(jobId, lines);
+      return next;
+    });
+  }, []);
+
+  const { processJob, retryTranslation } = usePipeline(handleJobUpdate, handleLiveSegments);
 
   const screen = determineScreen(configLoading, config, setupStatus);
 
@@ -135,6 +161,14 @@ function App() {
       }));
       setDashboardJobs((prev) => [...newJobs, ...prev]);
 
+      // Auto-navigate to editor for the first job
+      const first = newJobs[0];
+      if (first) {
+        setEditorJobId(first.id);
+        setEditorFilePath(first.file_path);
+        setActivePage("editor");
+      }
+
       // Trigger pipeline for each job
       const sourceLanguage = config?.source_language;
       for (const job of newJobs) {
@@ -149,20 +183,46 @@ function App() {
   }, []);
 
   const handleRetryJob = useCallback(
-    (jobId: string) => {
+    async (jobId: string) => {
       const job = dashboardJobs.find((j) => j.id === jobId);
       if (!job) return;
+
+      // Try to load existing subtitles — if they have original_text, skip STT
+      try {
+        const existing = await loadJobSubtitles(jobId);
+        if (existing.length > 0 && existing[0].original_text) {
+          // Has STT results — retry translation only
+          setDashboardJobs((prev) =>
+            prev.map((j) =>
+              j.id === jobId
+                ? { ...j, status: "processing" as const, stage: "translating" as const, progress: 50, error: undefined, completed_at: undefined }
+                : j,
+            ),
+          );
+          const segments = existing.map((l) => ({
+            index: l.index,
+            start: l.start_time,
+            end: l.end_time,
+            text: l.original_text,
+          }));
+          retryTranslation(jobId, segments);
+          return;
+        }
+      } catch {
+        // No existing subtitles — full retry
+      }
+
       setDashboardJobs((prev) =>
         prev.map((j) =>
           j.id === jobId
-            ? { ...j, status: "processing" as const, stage: "stt" as const, progress: 0, error: undefined }
+            ? { ...j, status: "processing" as const, stage: "stt" as const, progress: 0, error: undefined, completed_at: undefined }
             : j,
         ),
       );
       const sourceLanguage = config?.source_language;
       processJob(job.id, job.file_path, sourceLanguage === "auto" ? undefined : sourceLanguage);
     },
-    [dashboardJobs, processJob, config?.source_language],
+    [dashboardJobs, processJob, retryTranslation, config?.source_language],
   );
 
   // ── Config error screen ──
@@ -273,6 +333,7 @@ function App() {
                 subtitleFormat={config.subtitle_format}
                 vocabularies={vocabulariesHook.vocabularies}
                 onUpdateVocabulary={vocabulariesHook.update}
+                liveLines={editorJobId ? liveLines.get(editorJobId) : undefined}
               />
             )}
 

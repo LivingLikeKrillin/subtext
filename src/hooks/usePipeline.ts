@@ -42,8 +42,23 @@ interface ActivePipeline {
   phase: "stt" | "translating" | "done" | "error";
 }
 
+function buildSubtitleLines(pipeline: ActivePipeline): SubtitleLine[] {
+  return pipeline.segments.map((seg) => ({
+    id: crypto.randomUUID(),
+    index: seg.index,
+    start_time: seg.start,
+    end_time: seg.end,
+    original_text: seg.text,
+    translated_text: pipeline.translations.get(seg.index) ?? "",
+    status: pipeline.translations.has(seg.index)
+      ? ("translated" as const)
+      : ("untranslated" as const),
+  }));
+}
+
 export function usePipeline(
   onJobUpdate: (dashboardJobId: string, update: JobUpdate) => void,
+  onLiveSegments?: (jobId: string, lines: SubtitleLine[]) => void,
 ) {
   const pipelinesRef = useRef<Map<string, ActivePipeline>>(new Map());
   const unlistenersRef = useRef<UnlistenFn[]>([]);
@@ -119,6 +134,7 @@ export function usePipeline(
             end: seg.end,
             text: seg.text,
           });
+          onLiveSegments?.(pipeline.dashboardJobId, buildSubtitleLines(pipeline));
           return;
         }
       }
@@ -129,6 +145,7 @@ export function usePipeline(
       for (const [, pipeline] of pipelinesRef.current) {
         if (pipeline.translateJobId === seg.job_id) {
           pipeline.translations.set(seg.index, seg.translated);
+          onLiveSegments?.(pipeline.dashboardJobId, buildSubtitleLines(pipeline));
           return;
         }
       }
@@ -155,7 +172,7 @@ export function usePipeline(
       unlistenersRef.current.forEach((fn) => fn());
       unlistenersRef.current = [];
     };
-  }, [onJobUpdate]);
+  }, [onJobUpdate, onLiveSegments]);
 
   async function chainTranslation(pipeline: ActivePipeline) {
     if (pipeline.segments.length === 0) {
@@ -163,6 +180,14 @@ export function usePipeline(
       pipeline.phase = "done";
       finalizePipeline(pipeline);
       return;
+    }
+
+    // Save intermediate STT results before starting translation
+    try {
+      const sttLines = buildSubtitleLines(pipeline);
+      await saveJobSubtitles(pipeline.dashboardJobId, sttLines);
+    } catch (e) {
+      console.error("Failed to save intermediate STT results:", e);
     }
 
     onJobUpdate(pipeline.dashboardJobId, {
@@ -182,18 +207,7 @@ export function usePipeline(
   }
 
   async function finalizePipeline(pipeline: ActivePipeline) {
-    // Merge STT segments + translations into SubtitleLine[]
-    const lines: SubtitleLine[] = pipeline.segments.map((seg) => ({
-      id: crypto.randomUUID(),
-      index: seg.index,
-      start_time: seg.start,
-      end_time: seg.end,
-      original_text: seg.text,
-      translated_text: pipeline.translations.get(seg.index) ?? "",
-      status: pipeline.translations.has(seg.index)
-        ? ("translated" as const)
-        : ("untranslated" as const),
-    }));
+    const lines = buildSubtitleLines(pipeline);
 
     // Save to disk
     try {
@@ -249,6 +263,23 @@ export function usePipeline(
     [onJobUpdate],
   );
 
+  const retryTranslation = useCallback(
+    async (dashboardJobId: string, segments: SttSegment[]) => {
+      const pipeline: ActivePipeline = {
+        dashboardJobId,
+        sttJobId: null,
+        translateJobId: null,
+        segments,
+        translations: new Map(),
+        phase: "translating",
+      };
+
+      pipelinesRef.current.set(dashboardJobId, pipeline);
+      chainTranslation(pipeline);
+    },
+    [],
+  );
+
   const cancelJob = useCallback(async (dashboardJobId: string) => {
     const pipeline = pipelinesRef.current.get(dashboardJobId);
     if (!pipeline) return;
@@ -265,5 +296,5 @@ export function usePipeline(
     }
   }, []);
 
-  return { processJob, cancelJob };
+  return { processJob, retryTranslation, cancelJob };
 }
