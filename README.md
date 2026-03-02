@@ -1,115 +1,109 @@
 # SubText
 
-AI-powered local subtitle translator. Speech-to-text and LLM translation running entirely on your machine — no cloud, no data leaks.
+**Your videos, your language, your machine.**
 
-## Features
+SubText is a desktop app that transcribes and translates subtitles using AI models running entirely on your computer. No cloud APIs, no subscriptions, no data leaving your device — ever.
 
-- **Offline-first** — All processing happens locally. Your data never leaves your device.
-- **STT pipeline** — Audio → subtitle segments via [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2)
-- **LLM translation** — Segment-by-segment translation via [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) (GGUF models)
-- **Model management** — Download, verify (SHA-256), and switch between GGUF models from HuggingFace
-- **Hardware-aware profiles** — Lite / Balanced / Power presets based on detected RAM & GPU VRAM
-- **Subtitle editor** — Waveform visualization, split/merge, inline editing, audio playback
-- **Export formats** — SRT, VTT, ASS, TXT (with BOM)
-- **Translation presets & glossaries** — Reusable style/terminology configurations
-- **Bilingual UI** — English & Korean
+## Why SubText?
 
-## Architecture
+Most subtitle tools send your audio to remote servers. That means upload waits, usage fees, and zero control over where your data ends up.
 
-```
-┌─────────────────────────────────────────────┐
-│  Frontend (React 18 + TypeScript + Vite)    │
-│  shadcn/ui · Tailwind v4 · lucide-react     │
-├─────────────────────────────────────────────┤
-│  Tauri 2 Shell (Rust)                       │
-│  IPC · Model downloads · HW detection       │
-│  Config/Preset/Subtitle CRUD                │
-├──────────────── HTTP/SSE ───────────────────┤
-│  FastAPI Server (Python 3.12)               │
-│  faster-whisper · llama-cpp-python · psutil  │
-│  localhost:9111                              │
-└─────────────────────────────────────────────┘
-```
+SubText takes a different approach:
 
-**Pages**: Dashboard · Editor · Presets · Settings
+- **Complete privacy** — Audio, transcripts, and translations stay on your machine. Nothing is uploaded anywhere.
+- **No internet required** — Once models are downloaded, everything works offline.
+- **No recurring costs** — One install, unlimited use. No API keys, no per-minute billing.
+- **GPU-accelerated** — Automatically uses your NVIDIA GPU when available, falls back to CPU gracefully.
 
-## Prerequisites
+## What it does
 
-| Tool | Version |
-|------|---------|
-| Node.js | 18+ |
-| Rust | 1.70+ |
-| Python | 3.12 (embeddable, bundled at runtime) |
+**1. Transcribe** — Drop in a video or audio file. SubText generates timed subtitles using Whisper speech recognition.
 
-NVIDIA GPU is optional — CUDA acceleration is auto-detected and used when available.
+**2. Translate** — Subtitles are translated segment-by-segment with a local LLM. Control the style (formal, casual, natural) and inject glossary terms for consistent translations.
+
+**3. Edit** — Fine-tune results in a built-in subtitle editor with waveform visualization, split/merge tools, and audio playback.
+
+**4. Export** — Save as SRT, VTT, ASS, or plain text.
+
+## Key Features
+
+| Feature | Description |
+|---|---|
+| **Drag-and-drop workflow** | Drop files → pick a preset → subtitles appear |
+| **Translation presets** | Save combinations of language pair, style, and glossary for reuse |
+| **Glossary / vocabulary** | Define how specific terms should always be translated |
+| **Hardware profiles** | Lite / Balanced / Power — auto-recommended based on your RAM & GPU |
+| **Model management** | Browse, download, and switch between AI models from the app |
+| **Batch processing** | Queue multiple files and process them in sequence |
+| **Subtitle editor** | Waveform view, split/merge, inline editing, keyboard navigation |
+| **Bilingual UI** | English & Korean |
+| **Dark / Light theme** | System-aware with manual override |
+
+## System Requirements
+
+| Spec | Minimum | Recommended |
+|---|---|---|
+| **OS** | Windows 10 (64-bit) | Windows 11 |
+| **RAM** | 8 GB | 16 GB+ |
+| **Disk** | 4 GB free | 10 GB+ (for larger models) |
+| **GPU** | Not required | NVIDIA with 4 GB+ VRAM (CUDA) |
 
 ## Getting Started
 
+Download the installer from the Releases page, run it, and follow the setup wizard. The wizard detects your hardware, recommends a profile, and downloads the right models for your system.
+
+That's it — no Python, no command line, no manual configuration.
+
+## How it Works
+
+SubText bundles everything it needs:
+
+- **Whisper** (via [faster-whisper](https://github.com/SYSTRAN/faster-whisper)) for speech-to-text
+- **LLM** (via [llama-cpp-python](https://github.com/abetlen/llama-cpp-python)) for translation
+- A **Python runtime** installed automatically on first launch
+- **GGUF models** downloaded from HuggingFace with resume support and integrity checks
+
+The app shell is built with [Tauri 2](https://v2.tauri.app/) (Rust), the UI with React + TypeScript, and the AI engines run in a local FastAPI server — all communicating over localhost.
+
+## For Developers
+
 ```bash
-# Install dependencies
+# Prerequisites: Node.js 18+, Rust 1.70+
 npm install
-
-# Development (Vite + Tauri)
-npm run tauri dev
-
-# Production build
-npm run tauri build
+npm run tauri dev      # Development
+npm run tauri build    # Production installer
 ```
 
-The first launch runs a setup wizard that installs the bundled Python environment and downloads selected models.
-
-## Project Structure
+<details>
+<summary>Project structure</summary>
 
 ```
 src/                     # React frontend
 ├── components/
-│   ├── ui/              # shadcn/ui components (47+)
+│   ├── ui/              # shadcn/ui components
 │   ├── editor/          # Waveform, SubtitleList, EditPanel
 │   ├── dashboard/       # Job table, NewJobDialog
 │   ├── presets/          # PresetCard, VocabCard, CRUD dialogs
 │   └── settings/        # 6-section settings panel
 ├── hooks/               # useConfig, useRuntime, usePipeline, ...
-├── i18n/locales/        # en.json, ko.json
-└── app.css              # Theme system (CSS variables, light/dark)
+└── i18n/locales/        # en.json, ko.json
 
 src-tauri/src/           # Rust backend
-├── lib.rs               # Tauri app entry
 ├── commands*.rs         # IPC command handlers
 ├── model_downloader.rs  # HuggingFace download with resume
-├── hw_detector.rs       # CPU/GPU/RAM/disk detection
+├── hw_detector.rs       # CPU/GPU/RAM detection
 ├── config_manager.rs    # App configuration CRUD
 ├── preset_manager.rs    # Translation presets
-├── subtitle_manager.rs  # Per-job subtitle storage
 └── python_manager.rs    # Python subprocess lifecycle
 
 python-server/           # FastAPI backend
-├── main.py              # Server entry (uvicorn)
 ├── stt_engine.py        # faster-whisper wrapper
 ├── llm_engine.py        # llama-cpp-python wrapper
 ├── prompt_builder.py    # Context window & glossary injection
 └── runtime_router.py    # Model load/unload, resource polling
 ```
 
-## Data Paths
-
-All user data is stored under `%APPDATA%/com.subtext.app/`:
-
-| Path | Content |
-|------|---------|
-| `config.json` | App configuration |
-| `models/` | Downloaded GGUF models |
-| `presets/` | Translation presets |
-| `vocabularies/` | Glossary files |
-| `jobs/` | Job metadata & subtitles |
-| `python-env/` | Bundled Python runtime |
-
-## Tech Stack
-
-**Frontend**: React 18 · TypeScript · Vite 6 · Tailwind CSS v4 · shadcn/ui · Radix UI · lucide-react · react-resizable-panels · sonner · i18next
-
-**Desktop**: Tauri 2 · reqwest · tokio · serde · sysinfo · tauri-plugin-dialog
-
-**Backend**: FastAPI · uvicorn · faster-whisper · llama-cpp-python · psutil · sse-starlette
+</details>
 
 ## License
 
