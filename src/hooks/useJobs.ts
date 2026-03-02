@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { Job } from "../types";
 import { getJobs } from "../lib/tauriApi";
+import { toastError } from "../lib/toast";
+import i18n from "../i18n";
 
 export function useJobs() {
   const [jobs, setJobs] = useState<Map<string, Job>>(new Map());
@@ -16,7 +18,10 @@ export function useJobs() {
         }
         setJobs(map);
       })
-      .catch(console.error);
+      .catch((e) => {
+        console.error(e);
+        toastError(i18n.t("toast.jobsLoadFailed"));
+      });
 
     // Listen for job updates
     let unlisten: (() => void) | null = null;

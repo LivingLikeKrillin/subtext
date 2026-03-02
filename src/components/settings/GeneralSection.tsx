@@ -246,6 +246,15 @@ export function GeneralSection({ config, onUpdate }: GeneralSectionProps) {
               </Select>
             </div>
             <div className="flex flex-col gap-2">
+              <Label className="text-xs">{t("settings.api.apiKey")}</Label>
+              <Input
+                type="password"
+                value={config.external_api.api_key ?? ""}
+                onChange={(e) => onUpdate({ external_api: { ...config.external_api, api_key: e.target.value || null } as ExternalApiConfig })}
+                placeholder="sk-..."
+              />
+            </div>
+            <div className="flex flex-col gap-2">
               <Label className="text-xs">{t("settings.api.model")}</Label>
               <Input
                 value={config.external_api.model ?? ""}

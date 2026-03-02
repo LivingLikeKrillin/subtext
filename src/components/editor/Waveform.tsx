@@ -390,6 +390,8 @@ export function Waveform({
       <canvas
         ref={canvasRef}
         className="w-full h-full cursor-crosshair"
+        role="img"
+        aria-label="Waveform timeline"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMoveHover}
       />

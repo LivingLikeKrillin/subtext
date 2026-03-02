@@ -49,7 +49,10 @@ pub async fn subscribe_to_job_stream(app: AppHandle, job_id: String, port: u16) 
 
 fn update_job_from_event(app: &AppHandle, event: &SseEvent) -> bool {
     let state = app.state::<SharedState>();
-    let mut state = state.lock().expect("Failed to lock state");
+    let mut state = match state.lock() {
+        Ok(g) => g,
+        Err(_) => return false,
+    };
 
     match event {
         SseEvent::Progress {

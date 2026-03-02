@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -48,18 +49,19 @@ export function PlaybackControls({
   onVolumeChange,
   onPlaybackRateChange,
 }: PlaybackControlsProps) {
+  const { t } = useTranslation()
   const VolumeIcon = volume === 0 ? VolumeX : Volume2
 
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-t bg-muted/20">
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSkipPrev}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSkipPrev} aria-label={t("editor.a11y.skipPrev")}>
           <SkipBack className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onTogglePlay}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onTogglePlay} aria-label={isPlaying ? t("editor.a11y.pause") : t("editor.a11y.play")}>
           {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSkipNext}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSkipNext} aria-label={t("editor.a11y.skipNext")}>
           <SkipForward className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -95,7 +97,7 @@ export function PlaybackControls({
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={t("editor.a11y.volume")}>
             <VolumeIcon className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
         </PopoverTrigger>

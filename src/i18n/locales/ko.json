@@ -110,6 +110,13 @@
       "show": "비디오 표시",
       "hide": "비디오 숨기기"
     },
+    "a11y": {
+      "skipPrev": "이전 자막으로 이동",
+      "play": "재생",
+      "pause": "일시정지",
+      "skipNext": "다음 자막으로 이동",
+      "volume": "볼륨"
+    },
     "findReplace": {
       "title": "찾기 및 바꾸기",
       "placeholder": "자막에서 찾기...",
@@ -317,7 +324,8 @@
     "jobStillProcessing": "아직 처리 중인 작업입니다",
     "jobFailedClick": "작업이 실패했습니다",
     "configResetSuccess": "설정이 기본값으로 복원되었습니다",
-    "configResetFailed": "기본값 복원 실패"
+    "configResetFailed": "기본값 복원 실패",
+    "mediaLoadFailed": "미디어 파일을 로드할 수 없습니다. 타이머 시뮬레이션을 사용합니다."
   },
   "confirm": {
     "deletePreset": "프리셋 삭제",
@@ -510,6 +518,11 @@
     "light": "라이트",
     "dark": "다크",
     "system": "시스템"
+  },
+  "errorBoundary": {
+    "title": "오류가 발생했습니다",
+    "description": "예기치 않은 오류가 발생했습니다. 현재 화면을 다시 로드해 보세요.",
+    "tryAgain": "다시 시도"
   },
   "hw": {
     "cuda": "CUDA {{version}}",

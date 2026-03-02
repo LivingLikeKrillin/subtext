@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { Button } from "./ui/button";
+import i18n from "../i18n";
 
 interface Props {
   children: ReactNode;
@@ -38,9 +39,9 @@ export class ErrorBoundary extends Component<Props, State> {
               <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
             <div>
-              <p className="font-semibold text-lg">Something went wrong</p>
+              <p className="font-semibold text-lg">{i18n.t("errorBoundary.title")}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                An unexpected error occurred. You can try reloading the current view.
+                {i18n.t("errorBoundary.description")}
               </p>
               {this.state.error && (
                 <pre className="mt-3 max-h-32 overflow-auto rounded-md bg-muted p-3 text-xs text-left text-muted-foreground">
@@ -50,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <Button onClick={this.handleReset} variant="outline" size="sm">
               <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-              Try Again
+              {i18n.t("errorBoundary.tryAgain")}
             </Button>
           </div>
         </div>

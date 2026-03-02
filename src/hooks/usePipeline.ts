@@ -158,7 +158,7 @@ export function usePipeline(
         onJobUpdate(pipeline.dashboardJobId, {
           status: "failed",
           stage: "error",
-          error: "Server crashed",
+          error: i18n.t("toast.serverCrashed"),
         });
       }
       pipelinesRef.current.clear();

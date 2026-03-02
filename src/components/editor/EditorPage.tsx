@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Save, Download, FileText, Undo2, Redo2, Search, Video, VideoOff, Loader2 } from "lucide-react"
-import { toastSuccess, toastError } from "@/lib/toast"
+import { toastSuccess, toastError, toastWarning } from "@/lib/toast"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { Button } from "@/components/ui/button"
@@ -96,6 +96,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
         })
         .catch((e) => {
           console.error("Failed to reload subtitles after pipeline:", e)
+          toastError(t("toast.subtitleLoadFailed"))
         })
     }
     prevLiveModeRef.current = liveMode
@@ -178,6 +179,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
     const onError = () => {
       console.warn("Media load failed, falling back to timer simulation")
       setMediaReady(false)
+      toastWarning(t("toast.mediaLoadFailed"))
     }
 
     media.addEventListener("loadedmetadata", onLoadedMetadata)

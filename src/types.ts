@@ -61,6 +61,7 @@ export interface ProfileRecommendation {
 
 export interface ExternalApiConfig {
   provider: string | null;
+  api_key: string | null;
   model: string | null;
 }
 

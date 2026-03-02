@@ -74,6 +74,7 @@ pub struct ProfileRecommendation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExternalApiConfig {
     pub provider: Option<String>,
+    pub api_key: Option<String>,
     pub model: Option<String>,
 }
 
@@ -81,6 +82,7 @@ impl Default for ExternalApiConfig {
     fn default() -> Self {
         Self {
             provider: None,
+            api_key: None,
             model: None,
         }
     }

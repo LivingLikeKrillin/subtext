@@ -1,4 +1,4 @@
-# AI Subtitle Translator — 요구사항 명세서 v2.0
+# SubText — 요구사항 명세서 v2.0
 
 > **변경 이력**
 > | 버전 | 날짜 | 내용 |
@@ -20,9 +20,9 @@ Phase 1은 **Local First** 전략으로 오프라인 동작을 보장하고, 외
 
 | 항목 | 값 |
 |------|----|
-| 제품명 | AI Subtitle Translator |
+| 제품명 | SubText |
 | 식별자 | `com.subtext.app` |
-| 버전 | 0.2.0 (Phase 1) |
+| 버전 | 0.1.0 (Phase 1) |
 | 프론트엔드 | React 18 + TypeScript + Vite |
 | 백엔드 | FastAPI + Uvicorn + sse-starlette |
 | STT 엔진 | faster-whisper (CTranslate2) |
