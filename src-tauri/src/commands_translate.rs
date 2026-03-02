@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Emitter, State};
 
+use crate::commands_model;
 use crate::config_manager;
 use crate::contracts::SubtitleSegment;
 use crate::error::AppError;
@@ -43,13 +44,38 @@ pub async fn start_translate(
             }
         };
 
-    // Find a ready LLM model from manifest
+    // Find a ready LLM model: prefer active_llm_model from config, fallback to first ready
     let manifest = manifest_manager::load_manifest(&config)?;
-    let llm_model_id = manifest
-        .models
-        .iter()
-        .find(|m| m.model_type == "llm" && m.status == "ready")
-        .map(|m| m.id.clone());
+    let llm_model_id = config
+        .active_llm_model
+        .as_deref()
+        .and_then(|id| {
+            manifest
+                .models
+                .iter()
+                .find(|m| m.id == id && m.model_type == "llm" && m.status == "ready")
+                .map(|m| m.id.clone())
+        })
+        .or_else(|| {
+            manifest
+                .models
+                .iter()
+                .find(|m| m.model_type == "llm" && m.status == "ready")
+                .map(|m| m.id.clone())
+        });
+
+    // Look up n_gpu_layers_default from catalog for the selected model
+    let n_gpu_layers: Option<i32> = llm_model_id.as_ref().and_then(|model_id| {
+        commands_model::load_catalog(&app)
+            .ok()
+            .and_then(|catalog| {
+                catalog
+                    .llm_models
+                    .iter()
+                    .find(|m| m.id == *model_id)
+                    .map(|m| m.n_gpu_layers_default)
+            })
+    });
 
     // Build segment payload for Python
     let segment_payload: Vec<serde_json::Value> = segments
@@ -86,6 +112,9 @@ pub async fn start_translate(
     });
     if let Some(ref model_id) = llm_model_id {
         body["model_id"] = serde_json::Value::String(model_id.clone());
+    }
+    if let Some(layers) = n_gpu_layers {
+        body["n_gpu_layers"] = serde_json::json!(layers);
     }
 
     // POST /translate/start

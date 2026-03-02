@@ -23,6 +23,7 @@ class TranslateStartRequest(BaseModel):
     style_preset: str = "natural"
     glossary: list[GlossaryEntryRequest] = []
     model_id: str | None = None
+    n_gpu_layers: int | None = None
 
 
 class TranslateStartResponse(BaseModel):
@@ -40,6 +41,7 @@ async def start_translate(request: TranslateStartRequest):
         style_preset=request.style_preset,
         glossary=glossary,
         model_id=request.model_id,
+        n_gpu_layers=request.n_gpu_layers,
     )
     return TranslateStartResponse(job_id=job_id)
 

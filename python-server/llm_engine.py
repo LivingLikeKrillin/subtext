@@ -8,7 +8,6 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
 import uuid
 from enum import Enum
 from pathlib import Path
@@ -21,6 +20,7 @@ try:
 except ImportError:
     Llama = None  # type: ignore[misc,assignment]
 
+import gpu_utils
 import prompt_builder
 
 
@@ -45,22 +45,6 @@ def _find_llm_model_path(model_id: str) -> Path | None:
     return None
 
 
-def _get_n_gpu_layers() -> int:
-    """Detect NVIDIA GPU via nvidia-smi. Returns -1 (all GPU) or 0 (CPU)."""
-    try:
-        result = subprocess.run(
-            ["nvidia-smi"],
-            capture_output=True,
-            timeout=5,
-            creationflags=0x08000000 if os.name == "nt" else 0,
-        )
-        if result.returncode == 0:
-            return -1
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
-        pass
-    return 0
-
-
 def load_model(model_id: str, n_gpu_layers: int | None = None) -> bool:
     global _model, _loaded_model_id
 
@@ -75,7 +59,7 @@ def load_model(model_id: str, n_gpu_layers: int | None = None) -> bool:
         raise FileNotFoundError(f"LLM model not found: {model_id}")
 
     if n_gpu_layers is None:
-        n_gpu_layers = _get_n_gpu_layers()
+        n_gpu_layers = gpu_utils.get_llm_n_gpu_layers()
 
     # Try GPU first, fallback to CPU
     if n_gpu_layers != 0:
@@ -132,6 +116,7 @@ def create_translate_job(
     style_preset: str = "natural",
     glossary: list[dict[str, str]] | None = None,
     model_id: str | None = None,
+    n_gpu_layers: int | None = None,
 ) -> str:
     job_id = str(uuid.uuid4())
     _translate_jobs[job_id] = {
@@ -143,6 +128,7 @@ def create_translate_job(
         "style_preset": style_preset,
         "glossary": glossary or [],
         "model_id": model_id,
+        "n_gpu_layers": n_gpu_layers,
         "state": TranslateJobState.QUEUED,
         "cancel_flag": False,
     }
@@ -224,7 +210,10 @@ async def run_translate(job_id: str) -> AsyncGenerator[dict[str, Any], None]:
             "message": "Loading LLM model...",
         }
         try:
-            await asyncio.get_running_loop().run_in_executor(None, load_model, model_id)
+            _n_gpu = job.get("n_gpu_layers")
+            await asyncio.get_running_loop().run_in_executor(
+                None, load_model, model_id, _n_gpu
+            )
         except Exception as e:
             yield {"type": "error", "job_id": job_id, "error": f"Failed to load LLM: {e}"}
             job["state"] = TranslateJobState.FAILED

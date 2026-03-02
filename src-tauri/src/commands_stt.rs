@@ -38,13 +38,25 @@ pub async fn start_stt(
         )));
     }
 
-    // Find a ready whisper model from manifest
+    // Find a ready whisper model: prefer active_whisper_model from config, fallback to first ready
     let manifest = manifest_manager::load_manifest(&config)?;
-    let whisper_model_id = manifest
-        .models
-        .iter()
-        .find(|m| m.model_type == "whisper" && m.status == "ready")
-        .map(|m| m.id.clone());
+    let whisper_model_id = config
+        .active_whisper_model
+        .as_deref()
+        .and_then(|id| {
+            manifest
+                .models
+                .iter()
+                .find(|m| m.id == id && m.model_type == "whisper" && m.status == "ready")
+                .map(|m| m.id.clone())
+        })
+        .or_else(|| {
+            manifest
+                .models
+                .iter()
+                .find(|m| m.model_type == "whisper" && m.status == "ready")
+                .map(|m| m.id.clone())
+        });
 
     // Build request body
     let mut body = serde_json::json!({

@@ -6,7 +6,7 @@ use crate::manifest_manager::{self, ModelManifest, ModelManifestEntry};
 use crate::model_downloader;
 use crate::state::{ModelCatalog, SharedState};
 
-fn load_catalog(app: &AppHandle) -> Result<ModelCatalog, AppError> {
+pub(crate) fn load_catalog(app: &AppHandle) -> Result<ModelCatalog, AppError> {
     let resource_path = app
         .path()
         .resolve("model_catalog.json", tauri::path::BaseDirectory::Resource)

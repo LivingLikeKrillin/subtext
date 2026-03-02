@@ -17,6 +17,8 @@ try:
 except ImportError:
     WhisperModel = None  # type: ignore[misc,assignment]
 
+import gpu_utils
+
 
 # ── Model singleton ────────────────────────────────────────────────
 
@@ -36,17 +38,6 @@ def _find_whisper_model_path(model_id: str) -> Path | None:
     return None
 
 
-def _get_compute_type_and_device() -> tuple[str, str]:
-    """Detect CUDA availability and return (device, compute_type)."""
-    try:
-        import torch
-        if torch.cuda.is_available():
-            return "cuda", "float16"
-    except ImportError:
-        pass
-    return "cpu", "int8"
-
-
 def load_model(model_id: str) -> bool:
     global _model, _loaded_model_id
 
@@ -60,7 +51,7 @@ def load_model(model_id: str) -> bool:
     if model_path is None:
         raise FileNotFoundError(f"Whisper model not found: {model_id}")
 
-    device, compute_type = _get_compute_type_and_device()
+    device, compute_type = gpu_utils.get_stt_device()
     _model = WhisperModel(
         str(model_path),
         device=device,
