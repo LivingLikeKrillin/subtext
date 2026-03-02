@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "SubText",
-        "width": 900,
-        "height": 700
+        "width": 1200,
+        "height": 780
       }
     ],
     "security": {

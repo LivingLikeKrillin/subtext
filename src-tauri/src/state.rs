@@ -273,14 +273,6 @@ pub struct ResourceUsage {
 // ── Preset types ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TranslationStyle {
-    Formal,
-    Casual,
-    Honorific,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VocabularyEntry {
     pub id: String,
     pub source: String,

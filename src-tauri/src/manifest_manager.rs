@@ -94,23 +94,6 @@ pub fn remove_entry(manifest: &mut ModelManifest, model_id: &str) {
     manifest.updated_at = chrono_now();
 }
 
-pub fn check_integrity(config: &AppConfig) -> Result<ModelManifest, AppError> {
-    let mut manifest = load_manifest(config)?;
-    let base = models_dir(config)?;
-
-    for entry in manifest.models.iter_mut() {
-        if entry.status == "ready" || entry.status == "downloading" {
-            let model_path = base.join(&entry.path);
-            if !model_path.exists() {
-                entry.status = "missing".to_string();
-            }
-        }
-    }
-
-    save_manifest(config, &manifest)?;
-    Ok(manifest)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
