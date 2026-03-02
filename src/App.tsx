@@ -24,6 +24,7 @@ import { PresetsPage } from "./components/presets/PresetsPage";
 import { SettingsPage } from "./components/settings/SettingsPage";
 import { Toaster } from "./components/ui/sonner";
 import { Button } from "./components/ui/button";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import type { AppScreen, MainPage, DashboardJob, SubtitleLine } from "./types";
 import { loadDashboardJobs, saveDashboardJobs, loadJobSubtitles } from "./lib/tauriApi";
 
@@ -297,73 +298,75 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark">
-      <SidebarProvider>
-        <AppSidebar
-          activePage={activePage}
-          onNavigate={setActivePage}
-          hardwareInfo={hardware}
-        />
-        <SidebarInset>
-          <PageHeader
-            title={t(pageInfo.titleKey)}
-            description={pageInfo.descKey ? t(pageInfo.descKey) : undefined}
+      <ErrorBoundary>
+        <SidebarProvider>
+          <AppSidebar
+            activePage={activePage}
+            onNavigate={setActivePage}
+            hardwareInfo={hardware}
           />
-          <div className="flex flex-1 flex-col overflow-auto p-4">
-            {activePage === "dashboard" && (
-              <DashboardPage
-                jobs={dashboardJobs}
-                presets={presetsHook.presets}
-                vocabularies={vocabulariesHook.vocabularies}
-                onNewJob={handleNewJob}
-                onRemoveJob={handleRemoveJob}
-                onRetryJob={handleRetryJob}
-                onOpenEditor={(jobId, filePath) => {
-                  setEditorJobId(jobId);
-                  setEditorFilePath(filePath);
-                  setActivePage("editor");
-                }}
-              />
-            )}
+          <SidebarInset>
+            <PageHeader
+              title={t(pageInfo.titleKey)}
+              description={pageInfo.descKey ? t(pageInfo.descKey) : undefined}
+            />
+            <div className="flex flex-1 flex-col overflow-auto p-4">
+              {activePage === "dashboard" && (
+                <DashboardPage
+                  jobs={dashboardJobs}
+                  presets={presetsHook.presets}
+                  vocabularies={vocabulariesHook.vocabularies}
+                  onNewJob={handleNewJob}
+                  onRemoveJob={handleRemoveJob}
+                  onRetryJob={handleRetryJob}
+                  onOpenEditor={(jobId, filePath) => {
+                    setEditorJobId(jobId);
+                    setEditorFilePath(filePath);
+                    setActivePage("editor");
+                  }}
+                />
+              )}
 
-            {activePage === "editor" && config && (
-              <EditorPage
-                jobId={editorJobId}
-                filePath={editorFilePath}
-                outputDir={config.output_dir}
-                subtitleFormat={config.subtitle_format}
-                vocabularies={vocabulariesHook.vocabularies}
-                onUpdateVocabulary={vocabulariesHook.update}
-                liveLines={editorJobId ? liveLines.get(editorJobId) : undefined}
-              />
-            )}
+              {activePage === "editor" && config && (
+                <EditorPage
+                  jobId={editorJobId}
+                  filePath={editorFilePath}
+                  outputDir={config.output_dir}
+                  subtitleFormat={config.subtitle_format}
+                  vocabularies={vocabulariesHook.vocabularies}
+                  onUpdateVocabulary={vocabulariesHook.update}
+                  liveLines={editorJobId ? liveLines.get(editorJobId) : undefined}
+                />
+              )}
 
-            {activePage === "presets" && (
-              <PresetsPage
-                presets={presetsHook.presets}
-                vocabularies={vocabulariesHook.vocabularies}
-                onAddPreset={presetsHook.add}
-                onUpdatePreset={presetsHook.update}
-                onRemovePreset={presetsHook.remove}
-                onAddVocabulary={vocabulariesHook.add}
-                onUpdateVocabulary={vocabulariesHook.update}
-                onRemoveVocabulary={vocabulariesHook.remove}
-              />
-            )}
+              {activePage === "presets" && (
+                <PresetsPage
+                  presets={presetsHook.presets}
+                  vocabularies={vocabulariesHook.vocabularies}
+                  onAddPreset={presetsHook.add}
+                  onUpdatePreset={presetsHook.update}
+                  onRemovePreset={presetsHook.remove}
+                  onAddVocabulary={vocabulariesHook.add}
+                  onUpdateVocabulary={vocabulariesHook.update}
+                  onRemoveVocabulary={vocabulariesHook.remove}
+                />
+              )}
 
-            {activePage === "settings" && config && (
-              <SettingsPage
-                config={config}
-                manifest={models.manifest}
-                catalog={models.catalog}
-                hardware={hardware}
-                onUpdateConfig={(patch) => updateConfig(patch)}
-                onDeleteModel={models.deleteModel}
-                onDownloadModel={models.startDownload}
-              />
-            )}
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+              {activePage === "settings" && config && (
+                <SettingsPage
+                  config={config}
+                  manifest={models.manifest}
+                  catalog={models.catalog}
+                  hardware={hardware}
+                  onUpdateConfig={(patch) => updateConfig(patch)}
+                  onDeleteModel={models.deleteModel}
+                  onDownloadModel={models.startDownload}
+                />
+              )}
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </ErrorBoundary>
       <Toaster />
     </ThemeProvider>
   );
