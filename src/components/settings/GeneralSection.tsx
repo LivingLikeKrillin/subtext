@@ -60,7 +60,7 @@ export function GeneralSection({ config, onUpdate }: GeneralSectionProps) {
 
   function handleLanguageChange(lang: string) {
     i18n.changeLanguage(lang)
-    localStorage.setItem("ui-language", lang)
+    localStorage.setItem("ui_language", lang)
     onUpdate({ ui_language: lang })
   }
 

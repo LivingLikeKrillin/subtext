@@ -38,6 +38,11 @@
     },
     "search": "Search files...",
     "dropOverlay": "Drop files here to create a new job",
+    "time": {
+      "justNow": "Just now",
+      "minsAgo": "{{count}}m ago",
+      "hrsAgo": "{{count}}h ago"
+    },
     "stats": {
       "processedIn": "Processed in {{time}}"
     },

@@ -25,14 +25,7 @@
       }
     }
   },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/user/subtext/releases/latest/download/latest.json"
-      ],
-      "pubkey": "PLACEHOLDER_PUBLIC_KEY"
-    }
-  },
+  "plugins": {},
   "bundle": {
     "active": true,
     "targets": ["nsis"],

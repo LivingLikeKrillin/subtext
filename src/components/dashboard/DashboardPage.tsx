@@ -67,17 +67,19 @@ function formatDuration(sec: number) {
   return `${m}m`
 }
 
-function formatDate(iso: string, locale: string) {
-  const d = new Date(iso)
-  const now = new Date()
-  const diff = now.getTime() - d.getTime()
+function getRelativeTime(iso: string): { key: string; count?: number } | null {
+  const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "Just now"
-  if (mins < 60) return `${mins}m ago`
+  if (mins < 1) return { key: "dashboard.time.justNow" }
+  if (mins < 60) return { key: "dashboard.time.minsAgo", count: mins }
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
+  if (hrs < 24) return { key: "dashboard.time.hrsAgo", count: hrs }
+  return null
+}
+
+function formatDateAbsolute(iso: string, locale: string) {
   const dateLocale = locale === "ko" ? "ko-KR" : "en-US"
-  return d.toLocaleDateString(dateLocale, { month: "short", day: "numeric" })
+  return new Date(iso).toLocaleDateString(dateLocale, { month: "short", day: "numeric" })
 }
 
 function formatProcessingTime(createdAt: string, completedAt?: string) {
@@ -133,15 +135,13 @@ export function DashboardPage({
     e.preventDefault()
     e.stopPropagation()
     setIsDraggingOver(false)
-    const files = Array.from(e.dataTransfer.files)
-      .filter((f) => f.type.startsWith("video/") || f.type.startsWith("audio/"))
-      .map((f) => ({
-        name: f.name,
-        path: f.name,
-        size: f.size,
-      }))
-    if (files.length > 0) {
-      setDroppedFiles(files)
+    // Web File API does not expose full file paths (security restriction).
+    // Open the NewJobDialog so the user can pick files via the Tauri file dialog
+    // which does provide full absolute paths needed by the STT pipeline.
+    const hasMedia = Array.from(e.dataTransfer.files).some(
+      (f) => f.type.startsWith("video/") || f.type.startsWith("audio/"),
+    )
+    if (hasMedia) {
       setNewJobOpen(true)
     }
   }, [])
@@ -355,7 +355,10 @@ export function DashboardPage({
                     <div className="flex flex-col items-end gap-0.5">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {formatDate(job.created_at, i18n.language)}
+                        {(() => {
+                          const rel = getRelativeTime(job.created_at)
+                          return rel ? t(rel.key as never, rel.count != null ? { count: rel.count } : undefined) : formatDateAbsolute(job.created_at, i18n.language)
+                        })()}
                       </div>
                       {job.status === "completed" && job.completed_at && (
                         <span className="text-[10px] text-muted-foreground/60">

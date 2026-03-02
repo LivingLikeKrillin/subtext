@@ -38,6 +38,11 @@
     },
     "search": "파일 검색...",
     "dropOverlay": "파일을 여기에 놓아 새 작업을 만드세요",
+    "time": {
+      "justNow": "방금",
+      "minsAgo": "{{count}}분 전",
+      "hrsAgo": "{{count}}시간 전"
+    },
     "stats": {
       "processedIn": "처리 시간: {{time}}"
     },
