@@ -294,55 +294,73 @@ pub async fn download_llm_model(
         .await
         .map_err(|e| AppError::Download(format!("Failed to create model dir: {}", e)))?;
 
-    let url = hf_url(&model.repo, &model.filename);
-    let dest = dest_dir.join(&model.filename);
-    let model_id = model.id.clone();
-    let file_name = model.filename.clone();
-    let app_clone = app.clone();
+    // Build list of files to download: split_files if present, otherwise single file
+    let files_to_download: Vec<(String, String)> = match &model.split_files {
+        Some(splits) if !splits.is_empty() => splits
+            .iter()
+            .map(|sf| (sf.filename.clone(), sf.sha256.clone()))
+            .collect(),
+        _ => vec![(model.filename.clone(), model.sha256.clone())],
+    };
 
-    download_file(client, &url, &dest, cancel, |downloaded, total, speed, eta| {
+    let total_files = files_to_download.len() as u32;
+
+    for (i, (filename, expected_hash)) in files_to_download.iter().enumerate() {
+        if cancel.is_cancelled() {
+            return Err(AppError::Download("Download cancelled".to_string()));
+        }
+
+        let url = hf_url(&model.repo, filename);
+        let dest = dest_dir.join(filename);
+        let model_id = model.id.clone();
+        let file_name = filename.clone();
+        let file_index = i as u32;
+        let app_clone = app.clone();
+
+        download_file(client, &url, &dest, cancel.clone(), |downloaded, total, speed, eta| {
+            let _ = app_clone.emit(
+                "download-progress",
+                DownloadProgress {
+                    model_id: model_id.clone(),
+                    file_name: file_name.clone(),
+                    file_index,
+                    total_files,
+                    downloaded,
+                    total,
+                    speed_bps: speed,
+                    eta_secs: eta,
+                },
+            );
+        })
+        .await?;
+
+        // Verify hash
+        let app_clone = app.clone();
+        let model_id = model.id.clone();
+        let file_name = filename.clone();
+
         let _ = app_clone.emit(
             "download-progress",
             DownloadProgress {
                 model_id: model_id.clone(),
                 file_name: file_name.clone(),
-                file_index: 0,
-                total_files: 1,
-                downloaded,
-                total,
-                speed_bps: speed,
-                eta_secs: eta,
+                file_index: i as u32,
+                total_files,
+                downloaded: 0,
+                total: 0,
+                speed_bps: 0,
+                eta_secs: 0.0,
             },
         );
-    })
-    .await?;
 
-    // Verify hash
-    let app_clone = app.clone();
-    let model_id = model.id.clone();
-    let file_name = model.filename.clone();
-
-    let _ = app_clone.emit(
-        "download-progress",
-        DownloadProgress {
-            model_id: model_id.clone(),
-            file_name: file_name.clone(),
-            file_index: 0,
-            total_files: 1,
-            downloaded: 0,
-            total: 0,
-            speed_bps: 0,
-            eta_secs: 0.0,
-        },
-    );
-
-    let valid = verify_sha256(&dest, &model.sha256).await?;
-    if !valid {
-        let _ = tokio::fs::remove_file(&dest).await;
-        return Err(AppError::Download(format!(
-            "SHA-256 mismatch for {}/{}",
-            model.id, model.filename
-        )));
+        let valid = verify_sha256(&dest, expected_hash).await?;
+        if !valid {
+            let _ = tokio::fs::remove_file(&dest).await;
+            return Err(AppError::Download(format!(
+                "SHA-256 mismatch for {}/{}",
+                model.id, filename
+            )));
+        }
     }
 
     Ok(())

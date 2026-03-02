@@ -213,6 +213,12 @@ pub struct WhisperCatalogEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LlmSplitFile {
+    pub filename: String,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmCatalogEntry {
     pub id: String,
     pub name: String,
@@ -225,6 +231,8 @@ pub struct LlmCatalogEntry {
     pub n_gpu_layers_default: i32,
     #[serde(default)]
     pub model_category: Option<String>,
+    #[serde(default)]
+    pub split_files: Option<Vec<LlmSplitFile>>,
 }
 
 // ── Runtime types ──

@@ -8,9 +8,7 @@
     "editor": "자막 편집기",
     "presets": "프리셋",
     "settings": "설정",
-    "theme": "테마",
-    "workspace": "작업 공간",
-    "models": "모델"
+    "theme": "테마"
   },
   "dashboard": {
     "description": "번역 작업 관리",
@@ -174,38 +172,36 @@
       "importCsv": "CSV 가져오기",
       "imported": "{{count}}건 가져옴",
       "importFailed": "CSV 가져오기 실패"
+    },
+    "dialog": {
+      "editPreset": "프리셋 편집",
+      "newPreset": "새 프리셋",
+      "presetDescription": "자막 생성 및 번역 설정을 구성합니다.",
+      "editVocab": "용어사전 편집",
+      "newVocab": "새 용어사전",
+      "vocabDescription": "특정 단어와 구문의 번역 방법을 정의합니다.",
+      "name": "이름",
+      "description": "설명",
+      "whisperModel": "Whisper 모델",
+      "llmModel": "LLM 모델",
+      "sourceLang": "원본 언어",
+      "targetLang": "번역 언어",
+      "outputFormat": "출력 형식",
+      "translationStyle": "번역 스타일",
+      "vocabDictionary": "용어사전",
+      "none": "없음",
+      "entries": "항목",
+      "source": "원문",
+      "target": "번역",
+      "context": "문맥",
+      "note": "메모",
+      "addEntry": "항목 추가",
+      "cancel": "취소",
+      "saveChanges": "변경 저장",
+      "createPreset": "프리셋 생성",
+      "createVocab": "용어사전 생성",
+      "entriesCount": "{{count}}개 항목"
     }
-  },
-  "server": {
-    "title": "Python 서버",
-    "status": {
-      "stopped": "정지됨",
-      "starting": "시작 중...",
-      "running": "실행 중",
-      "error": "오류"
-    },
-    "startButton": "서버 시작",
-    "stopButton": "서버 중지"
-  },
-  "inference": {
-    "placeholder": "추론할 텍스트를 입력하세요...",
-    "submitButton": "추론 실행"
-  },
-  "jobs": {
-    "emptyState": "아직 작업이 없습니다. 위에서 추론 요청을 제출하세요.",
-    "state": {
-      "queued": "대기 중",
-      "running": "실행 중",
-      "done": "완료",
-      "failed": "실패",
-      "canceled": "취소됨"
-    },
-    "inputLabel": "입력:",
-    "resultLabel": "결과:",
-    "errorLabel": "오류:",
-    "copyButton": "결과 복사",
-    "copiedButton": "복사됨!",
-    "cancelButton": "취소"
   },
   "setup": {
     "description": "이 앱은 시스템에 Python 패키지를 설치해야 합니다. 필요한 의존성을 다운로드하고 설치하는 일회성 설정입니다.",
@@ -283,47 +279,6 @@
       "startUsing": "SubText 시작하기",
       "error": "설치 실패",
       "retry": "재시도"
-    }
-  },
-  "workspace": {
-    "fileInput": {
-      "dropzone": "오디오 또는 비디오 파일을 여기에 드롭하거나 클릭하여 찾아보기",
-      "browse": "파일 찾아보기",
-      "selectedFile": "선택됨"
-    },
-    "pipeline": {
-      "transcribing": "음성 인식 중...",
-      "translating": "번역 중...",
-      "done": "완료",
-      "cancelled": "취소됨",
-      "elapsed": "경과 시간:",
-      "eta": "예상 시간:"
-    },
-    "preview": {
-      "timestamp": "시간",
-      "original": "원본",
-      "translated": "번역",
-      "noSegments": "아직 자막이 없습니다. 파일을 선택하여 시작하세요."
-    },
-    "export": {
-      "button": "자막 내보내기",
-      "format": "형식",
-      "saved": "저장됨",
-      "openFolder": "폴더 열기",
-      "error": "내보내기 실패",
-      "exporting": "내보내기 중..."
-    },
-    "resource": {
-      "ram": "RAM",
-      "vram": "VRAM",
-      "warning": "리소스 사용량이 높습니다",
-      "whisper": "Whisper",
-      "llm": "LLM",
-      "unload": "언로드",
-      "statusUnloaded": "미로드",
-      "statusLoading": "로딩 중",
-      "statusReady": "준비됨",
-      "statusError": "오류"
     }
   },
   "toast": {

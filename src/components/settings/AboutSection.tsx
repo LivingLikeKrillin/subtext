@@ -1,13 +1,22 @@
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { ExternalLink, RefreshCw, CheckCircle2, AlertCircle, Download } from "lucide-react"
+import { getVersion } from "@tauri-apps/api/app"
 import { SubTextLogo } from "@/components/subtext-logo"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useUpdater } from "@/hooks/useUpdater"
 
+const GITHUB_REPO = "https://github.com/EisenHuang/subtext"
+
 export function AboutSection() {
   const { t } = useTranslation()
   const { checking, updateAvailable, installing, error, upToDate, checkForUpdates, installUpdate } = useUpdater()
+  const [version, setVersion] = useState("...")
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(() => setVersion("0.1.0"))
+  }, [])
 
   return (
     <div className="flex flex-col gap-6">
@@ -19,7 +28,7 @@ export function AboutSection() {
         <SubTextLogo size="md" />
         <div>
           <h4 className="text-sm font-semibold">SubText</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">{t("settings.about.version")} 0.1.0</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("settings.about.version")} {version}</p>
           <p className="text-xs text-muted-foreground">{t("settings.about.tagline")}</p>
         </div>
       </div>
@@ -85,7 +94,7 @@ export function AboutSection() {
 
       <div className="flex flex-col gap-1.5">
         <a
-          href="https://github.com"
+          href={GITHUB_REPO}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
@@ -94,7 +103,7 @@ export function AboutSection() {
           {t("settings.about.github")}
         </a>
         <a
-          href="https://github.com"
+          href={`${GITHUB_REPO}/issues`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"

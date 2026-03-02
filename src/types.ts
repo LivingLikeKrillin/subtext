@@ -134,6 +134,11 @@ export interface WhisperModelEntry {
   profiles: Profile[];
 }
 
+export interface LlmSplitFile {
+  filename: string;
+  sha256: string;
+}
+
 export interface LlmModelEntry {
   id: string;
   name: string;
@@ -145,6 +150,7 @@ export interface LlmModelEntry {
   profiles: Profile[];
   n_gpu_layers_default: number;
   model_category?: string;
+  split_files?: LlmSplitFile[];
 }
 
 export interface ModelCatalog {

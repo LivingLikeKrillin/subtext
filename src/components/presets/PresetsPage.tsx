@@ -179,7 +179,7 @@ function VocabCard({ vocab, onEdit, onDelete }: { vocab: Vocabulary; onEdit: () 
               <BookOpen className="h-3.5 w-3.5 text-primary" />
             </div>
             <h3 className="text-sm font-semibold truncate">{vocab.name}</h3>
-            <Badge variant="secondary" className="text-[10px]">{vocab.entries.length} entries</Badge>
+            <Badge variant="secondary" className="text-[10px]">{t("presets.dialog.entriesCount", { count: vocab.entries.length })}</Badge>
           </div>
           {vocab.description && <p className="text-xs text-muted-foreground mt-1 ml-6">{vocab.description}</p>}
         </div>
@@ -196,10 +196,10 @@ function VocabCard({ vocab, onEdit, onDelete }: { vocab: Vocabulary; onEdit: () 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Source</TableHead>
-                <TableHead className="w-[200px]">Target</TableHead>
-                <TableHead>Context</TableHead>
-                <TableHead>Note</TableHead>
+                <TableHead className="w-[200px]">{t("presets.dialog.source")}</TableHead>
+                <TableHead className="w-[200px]">{t("presets.dialog.target")}</TableHead>
+                <TableHead>{t("presets.dialog.context")}</TableHead>
+                <TableHead>{t("presets.dialog.note")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -273,24 +273,24 @@ function PresetDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{initial ? "Edit Preset" : "New Preset"}</DialogTitle>
-          <DialogDescription>Configure subtitle generation and translation settings.</DialogDescription>
+          <DialogTitle>{initial ? t("presets.dialog.editPreset") : t("presets.dialog.newPreset")}</DialogTitle>
+          <DialogDescription>{t("presets.dialog.presetDescription")}</DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh]">
           <div className="flex flex-col gap-4 py-2 px-1">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="preset-name">Name</Label>
-              <Input id="preset-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Korean to English (Formal)" />
+              <Label htmlFor="preset-name">{t("presets.dialog.name")}</Label>
+              <Input id="preset-name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="preset-desc">Description</Label>
-              <Textarea id="preset-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Optional description" className="resize-none" />
+              <Label htmlFor="preset-desc">{t("presets.dialog.description")}</Label>
+              <Textarea id="preset-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="resize-none" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label>Whisper Model</Label>
+                <Label>{t("presets.dialog.whisperModel")}</Label>
                 <Select value={whisperModel} onValueChange={setWhisperModel}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -301,7 +301,7 @@ function PresetDialog({
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>LLM Model</Label>
+                <Label>{t("presets.dialog.llmModel")}</Label>
                 <Select value={llmModel} onValueChange={setLlmModel}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -314,7 +314,7 @@ function PresetDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label>Source Language</Label>
+                <Label>{t("presets.dialog.sourceLang")}</Label>
                 <Select value={sourceLang} onValueChange={setSourceLang}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -325,7 +325,7 @@ function PresetDialog({
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Target Language</Label>
+                <Label>{t("presets.dialog.targetLang")}</Label>
                 <Select value={targetLang} onValueChange={setTargetLang}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -339,7 +339,7 @@ function PresetDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label>Output Format</Label>
+                <Label>{t("presets.dialog.outputFormat")}</Label>
                 <Select value={outputFormat} onValueChange={setOutputFormat}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -350,7 +350,7 @@ function PresetDialog({
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Translation Style</Label>
+                <Label>{t("presets.dialog.translationStyle")}</Label>
                 <Select value={translationStyle} onValueChange={setTranslationStyle}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -363,13 +363,13 @@ function PresetDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>Vocabulary Dictionary</Label>
+              <Label>{t("presets.dialog.vocabDictionary")}</Label>
               <Select value={vocabularyId ?? "none"} onValueChange={setVocabularyId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="none">{t("presets.dialog.none")}</SelectItem>
                   {vocabularies.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.name} ({v.entries.length} entries)</SelectItem>
+                    <SelectItem key={v.id} value={v.id}>{v.name} ({t("presets.dialog.entriesCount", { count: v.entries.length })})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -411,9 +411,9 @@ function PresetDialog({
         </ScrollArea>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("presets.dialog.cancel")}</Button>
           <Button onClick={handleSave} disabled={!name.trim()}>
-            {initial ? "Save Changes" : "Create Preset"}
+            {initial ? t("presets.dialog.saveChanges") : t("presets.dialog.createPreset")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -492,25 +492,25 @@ function VocabDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{initial ? "Edit Vocabulary" : "New Vocabulary"}</DialogTitle>
-          <DialogDescription>Define how specific words and phrases should be translated.</DialogDescription>
+          <DialogTitle>{initial ? t("presets.dialog.editVocab") : t("presets.dialog.newVocab")}</DialogTitle>
+          <DialogDescription>{t("presets.dialog.vocabDescription")}</DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh]">
           <div className="flex flex-col gap-4 py-2 px-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="vocab-name">Name</Label>
-                <Input id="vocab-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. IT/Tech Terms" />
+                <Label htmlFor="vocab-name">{t("presets.dialog.name")}</Label>
+                <Input id="vocab-name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="vocab-desc">Description</Label>
-                <Input id="vocab-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+                <Label htmlFor="vocab-desc">{t("presets.dialog.description")}</Label>
+                <Input id="vocab-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label>Source Language</Label>
+                <Label>{t("presets.dialog.sourceLang")}</Label>
                 <Select value={sourceLang} onValueChange={setSourceLang}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -521,7 +521,7 @@ function VocabDialog({
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Target Language</Label>
+                <Label>{t("presets.dialog.targetLang")}</Label>
                 <Select value={targetLang} onValueChange={setTargetLang}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -534,15 +534,15 @@ function VocabDialog({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label>Entries</Label>
+              <Label>{t("presets.dialog.entries")}</Label>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Source</TableHead>
-                      <TableHead>Target</TableHead>
-                      <TableHead>Context</TableHead>
-                      <TableHead>Note</TableHead>
+                      <TableHead>{t("presets.dialog.source")}</TableHead>
+                      <TableHead>{t("presets.dialog.target")}</TableHead>
+                      <TableHead>{t("presets.dialog.context")}</TableHead>
+                      <TableHead>{t("presets.dialog.note")}</TableHead>
                       <TableHead className="w-[40px]" />
                     </TableRow>
                   </TableHeader>
@@ -573,7 +573,7 @@ function VocabDialog({
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={addEntry}>
-                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Entry
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> {t("presets.dialog.addEntry")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleImportCsv}>
                   <FileUp className="mr-1.5 h-3.5 w-3.5" /> {t("presets.vocab.importCsv")}
@@ -584,9 +584,9 @@ function VocabDialog({
         </ScrollArea>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("presets.dialog.cancel")}</Button>
           <Button onClick={handleSave} disabled={!name.trim()}>
-            {initial ? "Save Changes" : "Create Vocabulary"}
+            {initial ? t("presets.dialog.saveChanges") : t("presets.dialog.createVocab")}
           </Button>
         </DialogFooter>
       </DialogContent>

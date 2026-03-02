@@ -8,9 +8,7 @@
     "editor": "Editor",
     "presets": "Presets",
     "settings": "Settings",
-    "theme": "Theme",
-    "workspace": "Workspace",
-    "models": "Models"
+    "theme": "Theme"
   },
   "dashboard": {
     "description": "Manage translation jobs",
@@ -174,38 +172,36 @@
       "importCsv": "Import CSV",
       "imported": "{{count}} entries imported",
       "importFailed": "Failed to import CSV"
+    },
+    "dialog": {
+      "editPreset": "Edit Preset",
+      "newPreset": "New Preset",
+      "presetDescription": "Configure subtitle generation and translation settings.",
+      "editVocab": "Edit Vocabulary",
+      "newVocab": "New Vocabulary",
+      "vocabDescription": "Define how specific words and phrases should be translated.",
+      "name": "Name",
+      "description": "Description",
+      "whisperModel": "Whisper Model",
+      "llmModel": "LLM Model",
+      "sourceLang": "Source Language",
+      "targetLang": "Target Language",
+      "outputFormat": "Output Format",
+      "translationStyle": "Translation Style",
+      "vocabDictionary": "Vocabulary Dictionary",
+      "none": "None",
+      "entries": "Entries",
+      "source": "Source",
+      "target": "Target",
+      "context": "Context",
+      "note": "Note",
+      "addEntry": "Add Entry",
+      "cancel": "Cancel",
+      "saveChanges": "Save Changes",
+      "createPreset": "Create Preset",
+      "createVocab": "Create Vocabulary",
+      "entriesCount": "{{count}} entries"
     }
-  },
-  "server": {
-    "title": "Python Server",
-    "status": {
-      "stopped": "Stopped",
-      "starting": "Starting...",
-      "running": "Running",
-      "error": "Error"
-    },
-    "startButton": "Start Server",
-    "stopButton": "Stop Server"
-  },
-  "inference": {
-    "placeholder": "Enter text for inference...",
-    "submitButton": "Run Inference"
-  },
-  "jobs": {
-    "emptyState": "No jobs yet. Submit an inference request above.",
-    "state": {
-      "queued": "Queued",
-      "running": "Running",
-      "done": "Done",
-      "failed": "Failed",
-      "canceled": "Canceled"
-    },
-    "inputLabel": "Input:",
-    "resultLabel": "Result:",
-    "errorLabel": "Error:",
-    "copyButton": "Copy Result",
-    "copiedButton": "Copied!",
-    "cancelButton": "Cancel"
   },
   "setup": {
     "description": "This app requires Python packages to be installed on your system. This is a one-time setup that will download and install the necessary dependencies.",
@@ -283,47 +279,6 @@
       "startUsing": "Start Using SubText",
       "error": "Installation Failed",
       "retry": "Retry"
-    }
-  },
-  "workspace": {
-    "fileInput": {
-      "dropzone": "Drop an audio or video file here, or click to browse",
-      "browse": "Browse Files",
-      "selectedFile": "Selected"
-    },
-    "pipeline": {
-      "transcribing": "Transcribing...",
-      "translating": "Translating...",
-      "done": "Complete",
-      "cancelled": "Cancelled",
-      "elapsed": "Elapsed:",
-      "eta": "ETA:"
-    },
-    "preview": {
-      "timestamp": "Time",
-      "original": "Original",
-      "translated": "Translated",
-      "noSegments": "No subtitles yet. Select a file to begin."
-    },
-    "export": {
-      "button": "Export Subtitles",
-      "format": "Format",
-      "saved": "Saved",
-      "openFolder": "Open Folder",
-      "error": "Export failed",
-      "exporting": "Exporting..."
-    },
-    "resource": {
-      "ram": "RAM",
-      "vram": "VRAM",
-      "warning": "High resource usage",
-      "whisper": "Whisper",
-      "llm": "LLM",
-      "unload": "Unload",
-      "statusUnloaded": "Unloaded",
-      "statusLoading": "Loading",
-      "statusReady": "Ready",
-      "statusError": "Error"
     }
   },
   "toast": {

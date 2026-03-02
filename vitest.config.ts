@@ -10,6 +10,7 @@ export default defineConfig({
       "@tauri-apps/api/core": path.resolve(__dirname, "./src/__mocks__/tauri.ts"),
       "@tauri-apps/api/event": path.resolve(__dirname, "./src/__mocks__/tauri-event.ts"),
       "@tauri-apps/plugin-dialog": path.resolve(__dirname, "./src/__mocks__/tauri-dialog.ts"),
+      "@tauri-apps/api/app": path.resolve(__dirname, "./src/__mocks__/tauri-app.ts"),
     },
   },
   test: {
