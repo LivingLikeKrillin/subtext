@@ -147,7 +147,7 @@ function App() {
   }, [reloadConfig]);
 
   const handleNewJob = useCallback(
-    (files: { name: string; path: string; size: number }[], presetId: string) => {
+    (files: { name: string; path: string; size: number }[], presetId: string, enableDiarization: boolean = false) => {
       const newJobs: DashboardJob[] = files.map((f) => ({
         id: crypto.randomUUID(),
         file_name: f.name,
@@ -173,7 +173,7 @@ function App() {
       // Trigger pipeline for each job
       const sourceLanguage = config?.source_language;
       for (const job of newJobs) {
-        processJob(job.id, job.file_path, sourceLanguage === "auto" ? undefined : sourceLanguage);
+        processJob(job.id, job.file_path, sourceLanguage === "auto" ? undefined : sourceLanguage, enableDiarization);
       }
     },
     [processJob, config?.source_language],

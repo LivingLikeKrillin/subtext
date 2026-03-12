@@ -218,6 +218,11 @@ export function SubtitleList({ lines, selectedId, currentTime, onSelect, onSplit
 
                   {/* Text content */}
                   <div className="flex-1 min-w-0">
+                    {line.speaker && (
+                      <span className="text-[10px] font-medium text-primary/70 mb-0.5 block">
+                        [{line.speaker}]
+                      </span>
+                    )}
                     <p className="text-sm leading-snug">
                       {highlightMatches ? (
                         <HighlightedText

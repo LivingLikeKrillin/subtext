@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Upload, X, FileVideo } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Switch } from "@/components/ui/switch"
 import { pickFile } from "@/lib/tauriApi"
 import type { Preset, Vocabulary } from "@/types"
 
@@ -21,7 +22,7 @@ interface NewJobDialogProps {
   onOpenChange: (open: boolean) => void
   presets: Preset[]
   vocabularies: Vocabulary[]
-  onSubmit: (files: SelectedFile[], presetId: string) => void
+  onSubmit: (files: SelectedFile[], presetId: string, enableDiarization: boolean) => void
   initialFiles?: SelectedFile[]
 }
 
@@ -50,6 +51,7 @@ export function NewJobDialog({ open, onOpenChange, presets, vocabularies, onSubm
     const defaultPreset = presets.find((p) => p.is_default)
     return defaultPreset?.id ?? presets[0]?.id ?? ""
   })
+  const [enableDiarization, setEnableDiarization] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -91,10 +93,11 @@ export function NewJobDialog({ open, onOpenChange, presets, vocabularies, onSubm
 
   const handleSubmit = useCallback(() => {
     if (files.length === 0 || !selectedPreset) return
-    onSubmit(files, selectedPreset)
+    onSubmit(files, selectedPreset, enableDiarization)
     setFiles([])
+    setEnableDiarization(false)
     onOpenChange(false)
-  }, [files, selectedPreset, onSubmit, onOpenChange])
+  }, [files, selectedPreset, enableDiarization, onSubmit, onOpenChange])
 
   const selectedPresetData = presets.find((p) => p.id === selectedPreset)
   const linkedVocab = selectedPresetData
@@ -205,6 +208,20 @@ export function NewJobDialog({ open, onOpenChange, presets, vocabularies, onSubm
               )}
             </div>
           )}
+
+          {/* Speaker diarization toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex-1 min-w-0">
+              <Label className="text-sm font-medium">{t("dashboard.newJob.enableDiarization", "Speaker Diarization")}</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("dashboard.newJob.enableDiarizationDesc", "Detect and label different speakers in the audio")}
+              </p>
+            </div>
+            <Switch
+              checked={enableDiarization}
+              onCheckedChange={setEnableDiarization}
+            />
+          </div>
 
           {presets.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-2">

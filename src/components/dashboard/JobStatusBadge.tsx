@@ -22,6 +22,7 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; className: string }> = {
 
 const STAGE_LABELS: Record<JobStage, string> = {
   stt: "STT",
+  diarizing: "Diarizing",
   translating: "Translating",
   done: "Done",
   error: "Error",

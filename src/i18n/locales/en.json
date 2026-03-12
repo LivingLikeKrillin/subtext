@@ -62,7 +62,9 @@
       "start": "Start job",
       "startMultiple": "Start {{count}} jobs",
       "supportedFormats": "MP4, MKV, AVI, MOV, MP3, WAV",
-      "linkedVocab": "Linked vocabulary:"
+      "linkedVocab": "Linked vocabulary:",
+      "enableDiarization": "Speaker Diarization",
+      "enableDiarizationDesc": "Detect and label different speakers in the audio"
     }
   },
   "editor": {
