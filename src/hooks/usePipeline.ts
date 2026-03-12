@@ -4,6 +4,8 @@ import type { Job, SttSegment, SubtitleLine, JobStatus, JobStage } from "../type
 import {
   startStt,
   cancelStt,
+  startDiarization,
+  cancelDiarization,
   startTranslate,
   cancelTranslate,
   saveJobSubtitles,
@@ -17,6 +19,12 @@ interface SttSegmentEvent {
   start: number;
   end: number;
   text: string;
+}
+
+interface DiarizationSegmentEvent {
+  job_id: string;
+  index: number;
+  speaker: string;
 }
 
 interface TranslateSegmentEvent {
@@ -36,10 +44,14 @@ export interface JobUpdate {
 interface ActivePipeline {
   dashboardJobId: string;
   sttJobId: string | null;
+  diarizationJobId: string | null;
   translateJobId: string | null;
   segments: SttSegment[];
   translations: Map<number, string>;
-  phase: "stt" | "translating" | "done" | "error";
+  speakerMap: Map<number, string>;
+  enableDiarization: boolean;
+  filePath: string;
+  phase: "stt" | "diarizing" | "translating" | "done" | "error";
 }
 
 function buildSubtitleLines(pipeline: ActivePipeline): SubtitleLine[] {
@@ -50,6 +62,7 @@ function buildSubtitleLines(pipeline: ActivePipeline): SubtitleLine[] {
     end_time: seg.end,
     original_text: seg.text,
     translated_text: pipeline.translations.get(seg.index) ?? "",
+    speaker: pipeline.speakerMap.get(seg.index),
     status: pipeline.translations.has(seg.index)
       ? ("translated" as const)
       : ("untranslated" as const),
@@ -72,15 +85,20 @@ export function usePipeline(
         // Match STT job
         if (pipeline.sttJobId === job.id) {
           if (job.state === "RUNNING") {
+            const progressScale = pipeline.enableDiarization ? 0.4 : 0.5;
             onJobUpdate(pipeline.dashboardJobId, {
               status: "processing",
               stage: "stt",
-              progress: Math.round(job.progress * 0.5), // STT is 0-50%
+              progress: Math.round(job.progress * progressScale),
             });
           } else if (job.state === "DONE") {
-            pipeline.phase = "translating";
-            // Chain to translation
-            chainTranslation(pipeline);
+            if (pipeline.enableDiarization) {
+              pipeline.phase = "diarizing";
+              chainDiarization(pipeline);
+            } else {
+              pipeline.phase = "translating";
+              chainTranslation(pipeline);
+            }
           } else if (job.state === "FAILED") {
             pipeline.phase = "error";
             onJobUpdate(pipeline.dashboardJobId, {
@@ -89,6 +107,33 @@ export function usePipeline(
               error: job.error ?? "STT failed",
             });
             pipelinesRef.current.delete(pipeline.dashboardJobId);
+          } else if (job.state === "CANCELED") {
+            pipelinesRef.current.delete(pipeline.dashboardJobId);
+            onJobUpdate(pipeline.dashboardJobId, {
+              status: "pending",
+              stage: "stt",
+              progress: 0,
+            });
+          }
+          return;
+        }
+
+        // Match diarization job
+        if (pipeline.diarizationJobId === job.id) {
+          if (job.state === "RUNNING") {
+            onJobUpdate(pipeline.dashboardJobId, {
+              status: "processing",
+              stage: "diarizing",
+              progress: 40 + Math.round(job.progress * 0.1),
+            });
+          } else if (job.state === "DONE") {
+            pipeline.phase = "translating";
+            chainTranslation(pipeline);
+          } else if (job.state === "FAILED") {
+            // Diarization failed — skip and continue to translation (graceful fallback)
+            console.warn("Diarization failed, skipping to translation");
+            pipeline.phase = "translating";
+            chainTranslation(pipeline);
           } else if (job.state === "CANCELED") {
             pipelinesRef.current.delete(pipeline.dashboardJobId);
             onJobUpdate(pipeline.dashboardJobId, {
@@ -140,6 +185,17 @@ export function usePipeline(
       }
     });
 
+    const p2b = listen<DiarizationSegmentEvent>("diar-segment", (event) => {
+      const seg = event.payload;
+      for (const [, pipeline] of pipelinesRef.current) {
+        if (pipeline.diarizationJobId === seg.job_id) {
+          pipeline.speakerMap.set(seg.index, seg.speaker);
+          onLiveSegments?.(pipeline.dashboardJobId, buildSubtitleLines(pipeline));
+          return;
+        }
+      }
+    });
+
     const p3 = listen<TranslateSegmentEvent>("translate-segment", (event) => {
       const seg = event.payload;
       for (const [, pipeline] of pipelinesRef.current) {
@@ -164,7 +220,7 @@ export function usePipeline(
       pipelinesRef.current.clear();
     });
 
-    Promise.all([p1, p2, p3, p4]).then((fns) => {
+    Promise.all([p1, p2, p2b, p3, p4]).then((fns) => {
       unlistenersRef.current = fns;
     });
 
@@ -173,6 +229,37 @@ export function usePipeline(
       unlistenersRef.current = [];
     };
   }, [onJobUpdate, onLiveSegments]);
+
+  async function chainDiarization(pipeline: ActivePipeline) {
+    if (pipeline.segments.length === 0) {
+      // No segments — skip diarization
+      pipeline.phase = "translating";
+      chainTranslation(pipeline);
+      return;
+    }
+
+    onJobUpdate(pipeline.dashboardJobId, {
+      status: "processing",
+      stage: "diarizing",
+      progress: 40,
+    });
+
+    try {
+      const diarSegments = pipeline.segments.map((s) => ({
+        index: s.index,
+        start: s.start,
+        end: s.end,
+        text: s.text,
+      }));
+      const job = await startDiarization(pipeline.filePath, diarSegments);
+      pipeline.diarizationJobId = job.id;
+    } catch {
+      // Diarization start failed — skip to translation (graceful fallback)
+      console.warn("Diarization start failed, skipping to translation");
+      pipeline.phase = "translating";
+      chainTranslation(pipeline);
+    }
+  }
 
   async function chainTranslation(pipeline: ActivePipeline) {
     if (pipeline.segments.length === 0) {
@@ -227,13 +314,17 @@ export function usePipeline(
   }
 
   const processJob = useCallback(
-    async (dashboardJobId: string, filePath: string, sourceLanguage?: string) => {
+    async (dashboardJobId: string, filePath: string, sourceLanguage?: string, enableDiarization?: boolean) => {
       const pipeline: ActivePipeline = {
         dashboardJobId,
         sttJobId: null,
+        diarizationJobId: null,
         translateJobId: null,
         segments: [],
         translations: new Map(),
+        speakerMap: new Map(),
+        enableDiarization: enableDiarization ?? false,
+        filePath,
         phase: "stt",
       };
 
@@ -268,9 +359,13 @@ export function usePipeline(
       const pipeline: ActivePipeline = {
         dashboardJobId,
         sttJobId: null,
+        diarizationJobId: null,
         translateJobId: null,
         segments,
         translations: new Map(),
+        speakerMap: new Map(),
+        enableDiarization: false,
+        filePath: "",
         phase: "translating",
       };
 
@@ -287,6 +382,8 @@ export function usePipeline(
     try {
       if (pipeline.phase === "stt" && pipeline.sttJobId) {
         await cancelStt(pipeline.sttJobId);
+      } else if (pipeline.phase === "diarizing" && pipeline.diarizationJobId) {
+        await cancelDiarization(pipeline.diarizationJobId);
       } else if (pipeline.phase === "translating" && pipeline.translateJobId) {
         await cancelTranslate(pipeline.translateJobId);
       }
