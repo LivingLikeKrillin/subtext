@@ -11,6 +11,7 @@ import {
   saveJobSubtitles,
 } from "../lib/tauriApi";
 import { toastError } from "../lib/toast";
+import { cleanSttSegments } from "../lib/sttCleaner";
 import i18n from "../i18n";
 
 interface SttSegmentEvent {
@@ -95,6 +96,9 @@ export function usePipeline(
               progress: Math.round(job.progress * progressScale),
             });
           } else if (job.state === "DONE") {
+            // Clean STT output before passing to next stage
+            pipeline.segments = cleanSttSegments(pipeline.segments);
+
             if (pipeline.enableDiarization) {
               pipeline.phase = "diarizing";
               chainDiarization(pipeline);
