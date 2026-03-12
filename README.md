@@ -37,18 +37,20 @@
 ## 워크플로우
 
 ```
-📂 파일 드롭  →  🎙️ 음성 인식  →  🌐 AI 번역  →  ✏️ 편집  →  💾 내보내기
+📂 파일 드롭  →  🎙️ 음성 인식  →  🗣️ 화자 검출  →  🌐 AI 번역  →  ✏️ 편집  →  💾 내보내기
 ```
 
 **Drop it.** 영상이든 음성이든 끌어다 놓으세요.
 
 **Transcribe it.** Whisper가 음성을 텍스트로 바꿉니다. 실시간으로요.
 
+**Diarize it.** 누가 말했는지 자동으로 구분합니다. 선택 사항이라 필요할 때만 켜세요.
+
 **Translate it.** 로컬 LLM이 세그먼트별로 번역합니다. 격식체, 구어체, 직역 — 원하는 톤을 고르세요.
 
 **Edit it.** 파형 위에서 자막을 다듬고, 자르고, 붙이세요.
 
-**Export it.** SRT · VTT · ASS · TXT. 끝.
+**Export it.** SRT · VTT · ASS · TXT. 화자 라벨 포함. 끝.
 
 ---
 
@@ -69,6 +71,10 @@
 ### 📖 용어사전
 "이건 이렇게 번역해" 를 정의.
 CSV로 한 번에 밀어넣기 가능.
+
+### 🗣️ 화자 검출
+"누가 말했지?" 를 AI가 자동 구분.
+ONNX 모델 기반, 완전 로컬.
 
 ### 📦 일괄 처리
 파일 여러 개? 큐에 넣고 자동 처리.
@@ -135,8 +141,9 @@ SubText는 세 개의 레이어로 구성됩니다.
 │  ⚙️  Tauri 2 (Rust)                         │  ← 데스크톱 셸, IPC, 파일 I/O
 ├─────────────────────────────────────────────┤
 │  🐍  Python FastAPI (localhost:9111)         │  ← AI 엔진
-│      ├ faster-whisper  → 음성 인식           │
-│      └ llama-cpp-python → 번역              │
+│      ├ faster-whisper    → 음성 인식         │
+│      ├ ONNX Runtime      → 화자 검출         │
+│      └ llama-cpp-python  → 번역              │
 └─────────────────────────────────────────────┘
 ```
 
@@ -174,7 +181,7 @@ src/                        React 프론트엔드
 └── types.ts                공유 타입 정의
 
 src-tauri/src/              Rust 백엔드
-├── commands*.rs            IPC 명령 핸들러 (13개)
+├── commands*.rs            IPC 명령 핸들러 (15개)
 ├── model_downloader.rs     HuggingFace 다운로드 (이어받기 + SHA256)
 ├── hw_detector.rs          CPU · GPU · RAM · CUDA 감지
 ├── config_manager.rs       설정 CRUD
@@ -184,6 +191,7 @@ src-tauri/src/              Rust 백엔드
 
 python-server/              FastAPI 백엔드
 ├── stt_engine.py           faster-whisper 래퍼
+├── diarization_engine.py   ONNX 화자 검출 엔진
 ├── llm_engine.py           llama-cpp-python 래퍼
 ├── prompt_builder.py       컨텍스트 윈도우 · 용어사전 주입
 ├── subtitle_formatter.py   SRT · VTT · ASS 변환
