@@ -41,6 +41,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .manage(SharedState::new(AppState::default()))
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
