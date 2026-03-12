@@ -65,6 +65,7 @@ export function splitLine(line: SubtitleLine, splitTime: number): [SubtitleLine,
     end_time: splitTime,
     original_text: firstText,
     translated_text: firstTranslated,
+    speaker: line.speaker,
     status: "editing",
   }
 
@@ -75,6 +76,7 @@ export function splitLine(line: SubtitleLine, splitTime: number): [SubtitleLine,
     end_time: line.end_time,
     original_text: secondText,
     translated_text: secondTranslated,
+    speaker: line.speaker,
     status: "editing",
   }
 
@@ -93,6 +95,7 @@ export function mergeLines(first: SubtitleLine, second: SubtitleLine): SubtitleL
     end_time: second.end_time,
     original_text: mergedOriginal,
     translated_text: mergedTranslated,
+    speaker: first.speaker,
     status: "editing",
   }
 }

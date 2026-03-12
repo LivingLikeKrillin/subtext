@@ -163,7 +163,7 @@ export interface ModelCatalog {
 // ── New Job types ──
 
 export type JobStatus = "pending" | "processing" | "completed" | "failed";
-export type JobStage = "stt" | "translating" | "done" | "error";
+export type JobStage = "stt" | "diarizing" | "translating" | "done" | "error";
 export type TranslationStyle = "formal" | "casual" | "honorific";
 export type Language = "ko" | "en" | "ja" | "zh";
 
@@ -201,6 +201,7 @@ export interface Preset {
   translation_quality?: string;
   custom_translation_prompt?: string;
   two_pass_translation?: boolean;
+  enable_diarization?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -212,7 +213,13 @@ export interface SubtitleLine {
   end_time: number;
   original_text: string;
   translated_text: string;
+  speaker?: string;
   status: "translated" | "untranslated" | "spell_error" | "editing";
+}
+
+export interface DiarizationSegment {
+  index: number;
+  speaker: string;
 }
 
 // ── Dashboard job ──

@@ -12,6 +12,8 @@ pub struct SubtitleLine {
     pub end_time: f64,
     pub original_text: String,
     pub translated_text: String,
+    #[serde(default)]
+    pub speaker: Option<String>,
     pub status: String,
 }
 

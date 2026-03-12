@@ -34,13 +34,21 @@ fn ts_ass(secs: f64) -> String {
 
 // ── Formatters ───────────────────────────────────────────────────
 
+fn speaker_prefix(seg: &SubtitleSegment) -> String {
+    match seg.speaker {
+        Some(ref s) if !s.is_empty() => format!("[{}] ", s),
+        _ => String::new(),
+    }
+}
+
 pub fn format_srt(segments: &[SubtitleSegment]) -> String {
     let mut lines: Vec<String> = Vec::new();
     for (i, seg) in segments.iter().enumerate() {
         let idx = i + 1;
         let start = ts_srt(seg.start);
         let end = ts_srt(seg.end);
-        let mut text = seg.text.trim().to_string();
+        let prefix = speaker_prefix(seg);
+        let mut text = format!("{}{}", prefix, seg.text.trim());
         if let Some(ref tr) = seg.translated {
             let tr = tr.trim();
             if !tr.is_empty() {
@@ -58,7 +66,8 @@ pub fn format_vtt(segments: &[SubtitleSegment]) -> String {
         let idx = i + 1;
         let start = ts_vtt(seg.start);
         let end = ts_vtt(seg.end);
-        let mut text = seg.text.trim().to_string();
+        let prefix = speaker_prefix(seg);
+        let mut text = format!("{}{}", prefix, seg.text.trim());
         if let Some(ref tr) = seg.translated {
             let tr = tr.trim();
             if !tr.is_empty() {
@@ -92,6 +101,7 @@ pub fn format_ass(segments: &[SubtitleSegment]) -> String {
     for seg in segments {
         let start = ts_ass(seg.start);
         let end = ts_ass(seg.end);
+        let name = seg.speaker.as_deref().unwrap_or("");
         let mut text = seg.text.trim().replace('\n', "\\N");
         if let Some(ref tr) = seg.translated {
             let tr = tr.trim().replace('\n', "\\N");
@@ -100,8 +110,8 @@ pub fn format_ass(segments: &[SubtitleSegment]) -> String {
             }
         }
         lines.push(format!(
-            "Dialogue: 0,{},{},Default,,0,0,0,,{}",
-            start, end, text
+            "Dialogue: 0,{},{},Default,{},0,0,0,,{}",
+            start, end, name, text
         ));
     }
     lines.join("\n")
@@ -110,7 +120,8 @@ pub fn format_ass(segments: &[SubtitleSegment]) -> String {
 pub fn format_txt(segments: &[SubtitleSegment]) -> String {
     let mut lines: Vec<String> = Vec::new();
     for seg in segments {
-        lines.push(seg.text.trim().to_string());
+        let prefix = speaker_prefix(seg);
+        lines.push(format!("{}{}", prefix, seg.text.trim()));
         if let Some(ref tr) = seg.translated {
             let tr = tr.trim();
             if !tr.is_empty() {
@@ -153,6 +164,7 @@ mod tests {
                 end: 2.5,
                 text: "Hello world".to_string(),
                 translated: Some("안녕하세요".to_string()),
+                speaker: None,
             },
             SubtitleSegment {
                 index: 1,
@@ -160,6 +172,7 @@ mod tests {
                 end: 5.0,
                 text: "Goodbye".to_string(),
                 translated: None,
+                speaker: None,
             },
         ]
     }
@@ -199,7 +212,7 @@ mod tests {
     fn test_format_ass_dialogue() {
         let ass = format_ass(&sample_segments());
         assert!(ass.contains("[Script Info]"));
-        assert!(ass.contains("Dialogue: 0,0:00:00.00,0:00:02.50,Default,,0,0,0,,Hello world\\N안녕하세요"));
+        assert!(ass.contains("Dialogue: 0,0:00:00.00,0:00:02.50,Default,,0,0,0,,Hello world\\N안녕하세요"), "ASS dialogue line not found in:\n{}", ass);
     }
 
     #[test]
@@ -217,5 +230,88 @@ mod tests {
         assert!(format_subtitles(&segs, "VTT").starts_with("WEBVTT"));
         assert!(format_subtitles(&segs, "ASS").contains("[Script Info]"));
         assert!(!format_subtitles(&segs, "txt").contains("-->"));
+    }
+
+    fn sample_segments_with_speaker() -> Vec<SubtitleSegment> {
+        vec![
+            SubtitleSegment {
+                index: 0,
+                start: 0.0,
+                end: 2.5,
+                text: "Hello world".to_string(),
+                translated: Some("안녕하세요".to_string()),
+                speaker: Some("SPEAKER_0".to_string()),
+            },
+            SubtitleSegment {
+                index: 1,
+                start: 3.0,
+                end: 5.0,
+                text: "Goodbye".to_string(),
+                translated: None,
+                speaker: Some("SPEAKER_1".to_string()),
+            },
+            SubtitleSegment {
+                index: 2,
+                start: 6.0,
+                end: 8.0,
+                text: "No speaker".to_string(),
+                translated: None,
+                speaker: None,
+            },
+        ]
+    }
+
+    #[test]
+    fn test_format_srt_with_speaker() {
+        let srt = format_srt(&sample_segments_with_speaker());
+        assert!(srt.contains("[SPEAKER_0] Hello world"), "SRT should prefix with speaker label:\n{}", srt);
+        assert!(srt.contains("[SPEAKER_1] Goodbye"), "SRT should prefix second speaker:\n{}", srt);
+        assert!(srt.contains("No speaker"), "SRT should show text without prefix when no speaker");
+        assert!(!srt.contains("[SPEAKER_") || !srt.contains("[] No speaker"),
+            "SRT should not add empty prefix for segments without speaker");
+    }
+
+    #[test]
+    fn test_format_vtt_with_speaker() {
+        let vtt = format_vtt(&sample_segments_with_speaker());
+        assert!(vtt.contains("[SPEAKER_0] Hello world"), "VTT should prefix with speaker label");
+        assert!(vtt.contains("[SPEAKER_1] Goodbye"), "VTT should prefix second speaker");
+    }
+
+    #[test]
+    fn test_format_ass_with_speaker() {
+        let ass = format_ass(&sample_segments_with_speaker());
+        // ASS uses the Name field for speaker
+        assert!(ass.contains(",Default,SPEAKER_0,0,0,0,,Hello world"),
+            "ASS should put speaker in Name field:\n{}", ass);
+        assert!(ass.contains(",Default,SPEAKER_1,0,0,0,,Goodbye"),
+            "ASS should put second speaker in Name field:\n{}", ass);
+        // No speaker → empty Name field
+        assert!(ass.contains(",Default,,0,0,0,,No speaker"),
+            "ASS should have empty Name field when no speaker:\n{}", ass);
+    }
+
+    #[test]
+    fn test_format_txt_with_speaker() {
+        let txt = format_txt(&sample_segments_with_speaker());
+        assert!(txt.contains("[SPEAKER_0] Hello world"), "TXT should prefix with speaker label");
+        assert!(txt.contains("[SPEAKER_1] Goodbye"), "TXT should prefix second speaker");
+        // No speaker → no prefix
+        let lines: Vec<&str> = txt.lines().collect();
+        let no_speaker_line = lines.iter().find(|l| l.contains("No speaker")).unwrap();
+        assert!(!no_speaker_line.starts_with('['), "TXT should not prefix when no speaker");
+    }
+
+    #[test]
+    fn test_speaker_prefix_empty_string() {
+        let seg = SubtitleSegment {
+            index: 0,
+            start: 0.0,
+            end: 1.0,
+            text: "Test".to_string(),
+            translated: None,
+            speaker: Some("".to_string()),
+        };
+        assert_eq!(speaker_prefix(&seg), "", "Empty speaker string should produce no prefix");
     }
 }

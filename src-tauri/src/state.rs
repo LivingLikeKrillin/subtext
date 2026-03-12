@@ -313,6 +313,8 @@ pub struct Preset {
     pub custom_translation_prompt: Option<String>,
     #[serde(default)]
     pub two_pass_translation: Option<bool>,
+    #[serde(default)]
+    pub enable_diarization: Option<bool>,
     pub created_at: String,
     pub updated_at: String,
 }
