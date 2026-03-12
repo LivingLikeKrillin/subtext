@@ -9,4 +9,6 @@ pub struct SubtitleSegment {
     pub text: String,
     #[serde(default)]
     pub translated: Option<String>,
+    #[serde(default)]
+    pub speaker: Option<String>,
 }
