@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { Save, Download, FileText, Undo2, Redo2, Search, Video, VideoOff, Loader2 } from "lucide-react"
+import { Save, Download, FileText, Undo2, Redo2, Search, Video, VideoOff, Loader2, Keyboard } from "lucide-react"
 import { toastSuccess, toastError, toastWarning } from "@/lib/toast"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
@@ -13,6 +13,7 @@ import { PlaybackControls } from "./PlaybackControls"
 import { FindReplaceBar } from "./FindReplaceBar"
 import { WaveformMinimap } from "./WaveformMinimap"
 import { VideoPreview } from "./VideoPreview"
+import { ShortcutsDialog } from "./ShortcutsDialog"
 import { loadJobSubtitles, saveJobSubtitles, exportSubtitles } from "@/lib/tauriApi"
 import { splitLine, mergeLines, reindex, getSplitTime, canSplit, canMerge } from "@/lib/subtitleOps"
 import { useHistory } from "@/hooks/useHistory"
@@ -104,6 +105,7 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
 
   // Find & Replace state
   const [findOpen, setFindOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [findQuery, setFindQuery] = useState("")
   const [replaceQuery, setReplaceQuery] = useState("")
   const [caseSensitive, setCaseSensitive] = useState(false)
@@ -718,9 +720,25 @@ export function EditorPage({ jobId, filePath, outputDir, subtitleFormat, vocabul
                 <TooltipContent><p>{showVideo ? t("editor.video.hide") : t("editor.video.show")}</p></TooltipContent>
               </Tooltip>
             )}
+            <div className="w-px h-4 bg-border mx-1" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setShortcutsOpen(true)}
+                >
+                  <Keyboard className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{t("shortcuts.title")}</p></TooltipContent>
+            </Tooltip>
           </div>
         </TooltipProvider>
       </div>
+
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
       {/* Find & Replace bar */}
       {findOpen && (

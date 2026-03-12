@@ -535,5 +535,26 @@
   "hw": {
     "cuda": "CUDA {{version}}",
     "cpuOnly": "CPU Only"
+  },
+  "notification": {
+    "completed": "{{name}} — Complete",
+    "completedBody": "Subtitles are ready to review.",
+    "failed": "{{name}} — Failed",
+    "failedBody": "An error occurred during processing."
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "playback": "Playback",
+    "editing": "Editing",
+    "general": "General",
+    "playPause": "Play / Pause",
+    "split": "Split subtitle",
+    "merge": "Merge with next",
+    "delete": "Delete subtitle",
+    "save": "Save",
+    "undo": "Undo",
+    "redo": "Redo",
+    "find": "Find & Replace",
+    "closeFind": "Close search"
   }
 }

@@ -27,6 +27,7 @@ import { Button } from "./components/ui/button";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import type { AppScreen, MainPage, DashboardJob, SubtitleLine } from "./types";
 import { loadDashboardJobs, saveDashboardJobs, loadJobSubtitles } from "./lib/tauriApi";
+import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 
 function determineScreen(
   configLoading: boolean,
@@ -77,6 +78,27 @@ function App() {
           return patched;
         }),
       );
+      // Send desktop notification when pipeline finishes
+      if (update.status === "completed" || update.status === "failed") {
+        const finishedJob = dashboardJobs.find((j) => j.id === jobId);
+        const fileName = finishedJob?.file_name ?? jobId;
+        isPermissionGranted().then(async (granted) => {
+          if (!granted) {
+            const result = await requestPermission();
+            granted = result === "granted";
+          }
+          if (granted) {
+            sendNotification({
+              title: update.status === "completed"
+                ? t("notification.completed", { name: fileName })
+                : t("notification.failed", { name: fileName }),
+              body: update.status === "completed"
+                ? t("notification.completedBody")
+                : (update.error ?? t("notification.failedBody")),
+            });
+          }
+        }).catch(() => { /* notification not critical */ });
+      }
       // Clear liveLines when pipeline finishes
       if (update.status === "completed" || update.status === "failed") {
         setLiveLines((prev) => {
